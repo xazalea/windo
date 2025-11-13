@@ -190,11 +190,12 @@
                             console.warn('BrowserPod method failed, trying fallbacks:', browserPodError);
                         }
                         
-                        // Fallback: Try Vercel proxy, then local, then CDN
+                        // Fallback: Try local submodule first, then other sources
                         const CDNS = [
-                            '/api/v86-proxy',  // Vercel serverless function (no CORS)
-                            './libv86.js',     // Local file (no CORS issues)
-                            'libv86.js'        // Alternative local path
+                            './libv86.js',     // Local file from submodule (no CORS)
+                            './v86/build/libv86.js',  // From git submodule
+                            'libv86.js',       // Alternative local path
+                            '/api/v86-proxy'   // Vercel serverless function (fallback)
                         ];
                         
                         let cdnIndex = 0;

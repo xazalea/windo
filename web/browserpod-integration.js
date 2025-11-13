@@ -28,7 +28,30 @@ class BrowserPodManager {
     }
 
     async downloadV86() {
-        // Download v86.js using BrowserPod or native fetch
+        // Try local files first (from git submodule), then download if needed
+        const localSources = [
+            './libv86.js',
+            './v86/build/libv86.js',
+            'libv86.js'
+        ];
+        
+        // Try local files first (no CORS, fastest)
+        for (const localPath of localSources) {
+            try {
+                const response = await fetch(localPath, { method: 'HEAD' });
+                if (response.ok) {
+                    // File exists locally, use it
+                    const textResponse = await fetch(localPath);
+                    if (textResponse.ok) {
+                        return await textResponse.text();
+                    }
+                }
+            } catch (e) {
+                // Continue to next source
+            }
+        }
+        
+        // If local files don't exist, try to download
         // Use Vercel proxy first (no CORS), then direct CDN
         const v86Sources = [
             '/api/v86-proxy',  // Vercel proxy (no CORS)

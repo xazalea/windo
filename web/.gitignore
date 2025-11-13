@@ -3,6 +3,9 @@ node_modules/
 package-lock.json
 yarn.lock
 
+# v86.js - Keep the submodule, but ignore if downloaded separately
+# libv86.js is in the submodule at v86/build/libv86.js
+
 # Vercel
 .vercel
 
