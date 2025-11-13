@@ -164,71 +164,92 @@
 
     <!-- Load scripts in proper order -->
     <script src="performance.js"></script>
+    <script src="browserpod-integration.js"></script>
     <script>
-        // Improved v86.js loading with multiple CDN fallbacks
+        // Load v86.js using BrowserPod (no CORS issues)
         (function() {
-            // Try Vercel proxy first (no CORS), then local, then CDN fallbacks
-            const CDNS = [
-                '/api/v86-proxy',  // Vercel serverless function (no CORS)
-                './libv86.js',     // Local file (no CORS issues)
-                'libv86.js',       // Alternative local path
-                'https://cdn.jsdelivr.net/gh/copy/v86@master/build/libv86.js',
-                'https://unpkg.com/v86@0.9.0/build/libv86.js',
-                'https://cdn.jsdelivr.net/npm/v86@0.9.0/build/libv86.js'
-            ];
+            let browserPodManager = null;
             
-            let cdnIndex = 0;
-            
-            function loadV86() {
-                return new Promise((resolve, reject) => {
-                    if (cdnIndex >= CDNS.length) {
-                        reject(new Error('All CDN sources failed. Please ensure libv86.js is in the web directory.'));
-                        return;
-                    }
-                    
-                    const script = document.createElement('script');
-                    script.src = CDNS[cdnIndex];
-                    script.async = true;
-                    script.defer = false;
-                    script.crossOrigin = 'anonymous';
-                    
-                    let checkAttempts = 0;
-                    const maxAttempts = 150; // 15 seconds total
-                    
-                    script.onload = () => {
-                        // Wait for V86Starter to be available
-                        const checkV86 = setInterval(() => {
-                            if (typeof V86Starter !== 'undefined') {
-                                clearInterval(checkV86);
-                                console.log('✓ v86.js loaded successfully from:', CDNS[cdnIndex]);
-                                resolve();
-                            } else if (checkAttempts++ >= maxAttempts) {
-                                clearInterval(checkV86);
-                                console.warn('V86Starter not available after load, trying next CDN');
-                                cdnIndex++;
-                                loadV86().then(resolve).catch(reject);
-                            }
-                        }, 100);
-                    };
-                    
-                    script.onerror = () => {
-                        console.warn('✗ Failed to load from:', CDNS[cdnIndex]);
-                        cdnIndex++;
-                        // Continue to next CDN
-                        setTimeout(() => {
-                            loadV86().then(resolve).catch(reject);
-                        }, 100);
-                    };
-                    
-                    // Add timeout for slow connections
-                    setTimeout(() => {
-                        if (script.parentNode && typeof V86Starter === 'undefined') {
-                            console.warn('Timeout loading from:', CDNS[cdnIndex]);
-                            script.onerror();
+            async function loadV86() {
+                return new Promise(async (resolve, reject) => {
+                    try {
+                        // Initialize BrowserPod manager
+                        if (!browserPodManager) {
+                            browserPodManager = new BrowserPodManager();
+                            await browserPodManager.initialize();
                         }
-                    }, 20000); // 20 second timeout per CDN
-                    
-                    document.head.appendChild(script);
+                        
+                        console.log('Loading v86.js via BrowserPod...');
+                        
+                        // Try BrowserPod first (no CORS issues)
+                        try {
+                            await browserPodManager.loadV86FromBrowserPod();
+                            resolve();
+                            return;
+                        } catch (browserPodError) {
+                            console.warn('BrowserPod method failed, trying fallbacks:', browserPodError);
+                        }
+                        
+                        // Fallback: Try Vercel proxy, then local, then CDN
+                        const CDNS = [
+                            '/api/v86-proxy',  // Vercel serverless function (no CORS)
+                            './libv86.js',     // Local file (no CORS issues)
+                            'libv86.js'        // Alternative local path
+                        ];
+                        
+                        let cdnIndex = 0;
+                        
+                        function tryNextCDN() {
+                            if (cdnIndex >= CDNS.length) {
+                                reject(new Error('All loading methods failed. BrowserPod and CDN sources unavailable.'));
+                                return;
+                            }
+                            
+                            const script = document.createElement('script');
+                            script.src = CDNS[cdnIndex];
+                            script.async = true;
+                            script.defer = false;
+                            
+                            let checkAttempts = 0;
+                            const maxAttempts = 150;
+                            
+                            script.onload = () => {
+                                const checkV86 = setInterval(() => {
+                                    if (typeof V86Starter !== 'undefined') {
+                                        clearInterval(checkV86);
+                                        console.log('✓ v86.js loaded successfully from:', CDNS[cdnIndex]);
+                                        resolve();
+                                    } else if (checkAttempts++ >= maxAttempts) {
+                                        clearInterval(checkV86);
+                                        console.warn('V86Starter not available, trying next source');
+                                        cdnIndex++;
+                                        tryNextCDN();
+                                    }
+                                }, 100);
+                            };
+                            
+                            script.onerror = () => {
+                                console.warn('✗ Failed to load from:', CDNS[cdnIndex]);
+                                cdnIndex++;
+                                setTimeout(tryNextCDN, 100);
+                            };
+                            
+                            setTimeout(() => {
+                                if (script.parentNode && typeof V86Starter === 'undefined') {
+                                    console.warn('Timeout loading from:', CDNS[cdnIndex]);
+                                    script.onerror();
+                                }
+                            }, 20000);
+                            
+                            document.head.appendChild(script);
+                        }
+                        
+                        tryNextCDN();
+                        
+                    } catch (error) {
+                        console.error('Failed to load v86.js:', error);
+                        reject(error);
+                    }
                 });
             }
             
