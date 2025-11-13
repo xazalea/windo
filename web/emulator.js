@@ -547,7 +547,14 @@ class WindowsEmulator {
                     image_type: imageType
                 });
                 
-                this.emulator = new V86Starter(this.config);
+                // Use V86 (not V86Starter) - check which one is available
+                if (typeof V86 !== 'undefined') {
+                    this.emulator = new V86(this.config);
+                } else if (typeof V86Starter !== 'undefined') {
+                    this.emulator = new V86Starter(this.config);
+                } else {
+                    throw new Error('Neither V86 nor V86Starter is available. v86.js may not have loaded correctly.');
+                }
                 
                 console.log('v86 emulator initialized successfully');
             } catch (initError) {
@@ -912,13 +919,13 @@ function showToast(message, type = 'success') {
 // Initialize emulator - called from windows-emulator.html after v86 loads
 // This function is called externally after v86.js is loaded
 function initializeEmulator() {
-    // Check if v86 is available
-    if (typeof V86Starter === 'undefined') {
-        console.error('v86.js not loaded');
+    // Check if v86 is available (V86 or V86Starter)
+    if (typeof V86 === 'undefined' && typeof V86Starter === 'undefined') {
+        console.error('v86.js not loaded - neither V86 nor V86Starter is available');
         const errorMsg = document.getElementById('errorMessage');
         const errorOverlay = document.getElementById('errorOverlay');
         if (errorMsg) {
-            errorMsg.textContent = 'v86.js library failed to load. Please refresh the page.';
+            errorMsg.textContent = 'v86.js library failed to load. Please ensure libv86.js exists and refresh the page.';
         }
         if (errorOverlay) {
             errorOverlay.style.display = 'flex';
