@@ -167,13 +167,14 @@
     <script>
         // Improved v86.js loading with multiple CDN fallbacks
         (function() {
-            // Multiple CDN sources with correct URLs
+            // Try Vercel proxy first (no CORS), then local, then CDN fallbacks
             const CDNS = [
+                '/api/v86-proxy',  // Vercel serverless function (no CORS)
+                './libv86.js',     // Local file (no CORS issues)
+                'libv86.js',       // Alternative local path
+                'https://cdn.jsdelivr.net/gh/copy/v86@master/build/libv86.js',
                 'https://unpkg.com/v86@0.9.0/build/libv86.js',
-                'https://cdn.jsdelivr.net/npm/v86@0.9.0/build/libv86.js',
-                'https://unpkg.com/v86/build/libv86.js',
-                'https://cdn.jsdelivr.net/npm/v86/build/libv86.js',
-                'https://raw.githubusercontent.com/copy/v86/master/build/libv86.js'
+                'https://cdn.jsdelivr.net/npm/v86@0.9.0/build/libv86.js'
             ];
             
             let cdnIndex = 0;
@@ -181,23 +182,7 @@
             function loadV86() {
                 return new Promise((resolve, reject) => {
                     if (cdnIndex >= CDNS.length) {
-                        // Last resort: try to load from a known working source
-                        console.error('All CDN sources failed, trying direct GitHub');
-                        const lastScript = document.createElement('script');
-                        lastScript.src = 'https://raw.githubusercontent.com/copy/v86/master/build/libv86.js';
-                        lastScript.async = true;
-                        lastScript.onload = () => {
-                            setTimeout(() => {
-                                if (typeof V86Starter !== 'undefined') {
-                                    console.log('v86.js loaded from GitHub');
-                                    resolve();
-                                } else {
-                                    reject(new Error('v86.js loaded but V86Starter not available'));
-                                }
-                            }, 1000);
-                        };
-                        lastScript.onerror = () => reject(new Error('All CDN sources failed'));
-                        document.head.appendChild(lastScript);
+                        reject(new Error('All CDN sources failed. Please ensure libv86.js is in the web directory.'));
                         return;
                     }
                     
@@ -305,15 +290,14 @@
                 if (errorMsg) {
                     errorMsg.innerHTML = `
                         <strong>v86.js library failed to load</strong><br><br>
-                        All CDN sources failed. This could be due to:<br>
-                        • Network connectivity issues<br>
-                        • CDN outages<br>
-                        • Firewall/proxy blocking<br><br>
-                        <strong>Solutions:</strong><br>
-                        1. Check your internet connection<br>
-                        2. Try refreshing the page<br>
-                        3. Disable ad blockers/extensions<br>
-                        4. Try a different network<br><br>
+                        All CDN sources failed. This is likely due to CORS policy restrictions.<br><br>
+                        <strong>Solution:</strong><br>
+                        The v86.js file needs to be hosted locally to avoid CORS issues.<br><br>
+                        <strong>To fix this:</strong><br>
+                        1. Download libv86.js:<br>
+                           <code>curl -L https://raw.githubusercontent.com/copy/v86/master/build/libv86.js -o libv86.js</code><br><br>
+                        2. Place it in the web/ directory<br>
+                        3. Redeploy to Vercel<br><br>
                         <small>Error: ${err.message}</small>
                     `;
                 }
