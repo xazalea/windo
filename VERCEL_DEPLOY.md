@@ -154,8 +154,20 @@ Vercel will automatically deploy!
 
 ### 404 Errors
 
-- Make sure `vercel.json` has the correct routing configuration
-- Check that `index.html` is in the root of the `web` directory
+**If deploying from root directory:**
+- Make sure `vercel.json` in root specifies `"outputDirectory": "web"`
+- Or deploy from the `web` directory directly
+
+**If deploying from `web` directory:**
+- Ensure `vercel.json` is in the `web` directory
+- Check that `index.html` exists in the `web` directory
+- Verify all file paths are relative (e.g., `./styles.css` not `/styles.css`)
+- Make sure `package.json` exists in the `web` directory
+
+**Common fixes:**
+1. Delete root `vercel.json` if deploying from `web` directory
+2. Set Root Directory to `web` in Vercel project settings
+3. Ensure all HTML files reference assets with relative paths
 
 ### Styling Issues
 
