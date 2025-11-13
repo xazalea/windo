@@ -909,33 +909,54 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
-// Initialize when v86 is loaded
-window.addEventListener('load', () => {
+// Initialize emulator - called from windows-emulator.html after v86 loads
+// This function is called externally after v86.js is loaded
+function initializeEmulator() {
     // Check if v86 is available
     if (typeof V86Starter === 'undefined') {
         console.error('v86.js not loaded');
-        document.getElementById('errorMessage').textContent = 
-            'v86.js library failed to load. Please refresh the page.';
-        document.getElementById('errorOverlay').style.display = 'flex';
+        const errorMsg = document.getElementById('errorMessage');
+        const errorOverlay = document.getElementById('errorOverlay');
+        if (errorMsg) {
+            errorMsg.textContent = 'v86.js library failed to load. Please refresh the page.';
+        }
+        if (errorOverlay) {
+            errorOverlay.style.display = 'flex';
+        }
         return;
     }
 
-    emulator = new WindowsEmulator();
+    // Wait for DOM elements to be ready
+    if (!document.getElementById('screen')) {
+        setTimeout(initializeEmulator, 100);
+        return;
+    }
+
+    window.emulator = new WindowsEmulator();
     
     // Load saved settings
     const savedSettings = localStorage.getItem('emulatorSettings');
     if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        document.getElementById('memorySize').value = settings.memorySize || 1536;
-        document.getElementById('cpuSpeed').value = settings.cpuSpeed || 'medium';
-        document.getElementById('enableSound').checked = settings.enableSound !== false;
-        document.getElementById('enableNetwork').checked = settings.enableNetwork !== false;
-        document.getElementById('enableCDROM').checked = settings.enableCDROM || false;
+        try {
+            const settings = JSON.parse(savedSettings);
+            const memorySize = document.getElementById('memorySize');
+            const cpuSpeed = document.getElementById('cpuSpeed');
+            const enableSound = document.getElementById('enableSound');
+            const enableNetwork = document.getElementById('enableNetwork');
+            
+            if (memorySize) memorySize.value = settings.memorySize || 1536;
+            if (cpuSpeed) cpuSpeed.value = settings.cpuSpeed || 'medium';
+            if (enableSound) enableSound.checked = settings.enableSound !== false;
+            if (enableNetwork) enableNetwork.checked = settings.enableNetwork !== false;
+        } catch (e) {
+            console.error('Error loading settings:', e);
+        }
     } else {
         // Default settings for Windows 10 (optimized)
-        document.getElementById('memorySize').value = 1536;
+        const memorySize = document.getElementById('memorySize');
+        if (memorySize) memorySize.value = 1536;
     }
-});
+}
 
 // Add CSS animations
 const style = document.createElement('style');
