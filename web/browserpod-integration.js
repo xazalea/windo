@@ -29,10 +29,12 @@ class BrowserPodManager {
 
     async downloadV86() {
         // Download v86.js using BrowserPod or native fetch
+        // Use Vercel proxy first (no CORS), then direct CDN
         const v86Sources = [
+            '/api/v86-proxy',  // Vercel proxy (no CORS)
+            'https://cdn.jsdelivr.net/gh/copy/v86@master/build/libv86.js',
             'https://unpkg.com/v86@0.9.0/build/libv86.js',
-            'https://cdn.jsdelivr.net/npm/v86@0.9.0/build/libv86.js',
-            'https://raw.githubusercontent.com/copy/v86/master/build/libv86.js'
+            'https://cdn.jsdelivr.net/npm/v86@0.9.0/build/libv86.js'
         ];
 
         for (const url of v86Sources) {
@@ -48,16 +50,25 @@ class BrowserPodManager {
                     const result = await this.pod.execute(script);
                     return result.stdout || result;
                 } else {
-                    // Use native fetch (may have CORS issues, but try anyway)
-                    const response = await fetch(url, {
+                    // Use native fetch
+                    // If it's the proxy, use same-origin, otherwise try CORS
+                    const fetchOptions = {
                         method: 'GET',
-                        mode: 'cors',
                         cache: 'default'
-                    });
+                    };
+                    
+                    // Only set mode for external URLs
+                    if (!url.startsWith('/') && !url.startsWith('./')) {
+                        fetchOptions.mode = 'cors';
+                    }
+                    
+                    const response = await fetch(url, fetchOptions);
                     
                     if (response.ok) {
                         const text = await response.text();
                         return text;
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                 }
             } catch (error) {
