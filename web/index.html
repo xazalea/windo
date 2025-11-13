@@ -4,19 +4,372 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Azalea - Windows 10 Running on Browser</title>
-    <script>
-        // Immediately redirect to Windows emulator
-        // Check terms first
-        if (localStorage.getItem('azalea_terms_accepted') !== 'true') {
-            window.location.href = '/terms.html';
-        } else {
-            window.location.href = '/windows-emulator.html';
-        }
-    </script>
+    <link rel="stylesheet" href="emulator.css">
 </head>
 <body>
-    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui;">
-        <p>Loading Azalea...</p>
+    <div class="emulator-container fullscreen">
+        <!-- Minimal Toolbar (auto-hides) -->
+        <div class="emulator-toolbar hidden" id="toolbar">
+            <div class="toolbar-left">
+                <div class="status-info">
+                    <span id="statusIndicator" class="status-dot"></span>
+                    <span id="statusText">Initializing...</span>
+                </div>
+            </div>
+            <div class="toolbar-center">
+                <h2>Azalea - Windows 10 Lite</h2>
+            </div>
+            <div class="toolbar-right">
+                <button class="toolbar-btn" onclick="toggleFullscreen()" title="Fullscreen (F11)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                    </svg>
+                </button>
+                <button class="toolbar-btn" onclick="showSettings()" title="Settings (S)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                    </svg>
+                </button>
+                <button class="toolbar-btn" onclick="restartVM()" title="Restart (R)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- VM Canvas Container -->
+        <div class="vm-container">
+            <div id="screen_container" class="screen-container">
+                <canvas id="screen"></canvas>
+                <div id="loadingOverlay" class="loading-overlay">
+                    <div class="loading-content">
+                        <div class="loading-spinner"></div>
+                        <h3>Loading Windows 10 Lite...</h3>
+                        <p id="loadingText">Initializing x86 emulator</p>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <p class="loading-note">This may take 30-60 seconds. Please be patient.</p>
+                        <p class="loading-note" style="margin-top: 0.5rem; font-size: 0.75rem; opacity: 0.7;">
+                            Press <kbd>Ctrl+Shift+T</kbd> to show toolbar
+                        </p>
+                    </div>
+                </div>
+                <div id="errorOverlay" class="error-overlay" style="display: none;">
+                    <div class="error-content">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <h3>Error Loading Windows</h3>
+                        <p id="errorMessage">Unable to load Windows image</p>
+                        <div class="error-actions">
+                            <button class="btn-primary" onclick="retryLoad()">Retry</button>
+                            <button class="btn-secondary" onclick="showImageSelector()">Select Image</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-backdrop" onclick="closeSettings()"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Emulator Settings</h2>
+                    <button class="modal-close" onclick="closeSettings()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="memorySize">Memory (MB)</label>
+                        <input type="number" id="memorySize" value="1536" min="512" max="2048" step="256">
+                        <small>Windows 10 requires at least 1GB. More memory = better performance (requires restart)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="cpuSpeed">CPU Speed</label>
+                        <select id="cpuSpeed">
+                            <option value="slow">Slow (Better compatibility)</option>
+                            <option value="medium" selected>Medium (Balanced)</option>
+                            <option value="fast">Fast (May cause issues)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableSound" checked>
+                            Enable Sound
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableNetwork" checked>
+                            Enable Network
+                        </label>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+                        <button class="btn-primary" onclick="applySettings()">Apply Settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Selector Modal -->
+        <div id="imageModal" class="modal">
+            <div class="modal-backdrop" onclick="closeImageModal()"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Select Windows Image</h2>
+                    <button class="modal-close" onclick="closeImageModal()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="image-options">
+                        <div class="image-option" onclick="loadPresetImage('windows10')">
+                            <div class="image-icon">🪟</div>
+                            <h3>Windows 10 Lite</h3>
+                            <p>Windows 10 Lite Edition 19H2</p>
+                            <small>1.1GB - Ready to use!</small>
+                        </div>
+                        <div class="image-option" onclick="loadCustomImage()">
+                            <div class="image-icon">📁</div>
+                            <h3>Custom Image</h3>
+                            <p>Upload your own Windows image</p>
+                            <small>Supports .img, .iso, .vmdk formats</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="imageUrl">Or enter image URL:</label>
+                        <input type="url" id="imageUrl" placeholder="https://example.com/windows.img">
+                        <button class="btn-primary" onclick="loadFromUrl()">Load from URL</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Load scripts in proper order -->
+    <script src="performance.js"></script>
+    <script>
+        // Improved v86.js loading with multiple CDN fallbacks
+        (function() {
+            const CDNS = [
+                'https://unpkg.com/v86@latest/build/libv86.js',
+                'https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/v86/0.9.0/libv86.js'
+            ];
+            
+            let cdnIndex = 0;
+            
+            function loadV86() {
+                return new Promise((resolve, reject) => {
+                    if (cdnIndex >= CDNS.length) {
+                        reject(new Error('All CDN sources failed'));
+                        return;
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.src = CDNS[cdnIndex];
+                    script.async = true;
+                    script.defer = false; // Don't defer, load immediately
+                    
+                    let checkAttempts = 0;
+                    const maxAttempts = 100; // 10 seconds total
+                    
+                    script.onload = () => {
+                        // Wait for V86Starter to be available
+                        const checkV86 = setInterval(() => {
+                            if (typeof V86Starter !== 'undefined') {
+                                clearInterval(checkV86);
+                                console.log('v86.js loaded successfully from:', CDNS[cdnIndex]);
+                                resolve();
+                            } else if (checkAttempts++ >= maxAttempts) {
+                                clearInterval(checkV86);
+                                // Try next CDN
+                                cdnIndex++;
+                                loadV86().then(resolve).catch(reject);
+                            }
+                        }, 100);
+                    };
+                    
+                    script.onerror = () => {
+                        console.warn('Failed to load from:', CDNS[cdnIndex]);
+                        cdnIndex++;
+                        loadV86().then(resolve).catch(reject);
+                    };
+                    
+                    document.head.appendChild(script);
+                });
+            }
+            
+            // Check if terms were accepted
+            if (localStorage.getItem('azalea_terms_accepted') !== 'true') {
+                window.location.href = '/terms.html';
+                return;
+            }
+            
+            // Load v86.js first, then other scripts
+            loadV86().then(() => {
+                // Load API client (optional, won't fail if not available)
+                const apiScript = document.createElement('script');
+                apiScript.src = 'api-client.js';
+                apiScript.async = true;
+                apiScript.onerror = () => console.log('API client not available, continuing without it');
+                document.head.appendChild(apiScript);
+                
+                // Load emulator script
+                const emulatorScript = document.createElement('script');
+                emulatorScript.src = 'emulator.js';
+                emulatorScript.async = true;
+                document.head.appendChild(emulatorScript);
+                
+                emulatorScript.onload = () => {
+                    // Initialize after everything is loaded
+                    setTimeout(() => {
+                        if (typeof initializeEmulator === 'function') {
+                            initializeEmulator();
+                        } else if (typeof WindowsEmulator !== 'undefined' && typeof V86Starter !== 'undefined') {
+                            window.emulator = new WindowsEmulator();
+                        } else {
+                            console.error('Failed to initialize emulator');
+                            const errorMsg = document.getElementById('errorMessage');
+                            const errorOverlay = document.getElementById('errorOverlay');
+                            if (errorMsg) errorMsg.textContent = 'Failed to initialize emulator. Please refresh.';
+                            if (errorOverlay) errorOverlay.style.display = 'flex';
+                        }
+                    }, 100);
+                };
+                
+                emulatorScript.onerror = () => {
+                    console.error('Failed to load emulator.js');
+                    const errorMsg = document.getElementById('errorMessage');
+                    const errorOverlay = document.getElementById('errorOverlay');
+                    if (errorMsg) errorMsg.textContent = 'Failed to load emulator script. Please refresh.';
+                    if (errorOverlay) errorOverlay.style.display = 'flex';
+                };
+            }).catch(err => {
+                console.error('Failed to load v86.js:', err);
+                const errorMsg = document.getElementById('errorMessage');
+                const errorOverlay = document.getElementById('errorOverlay');
+                if (errorMsg) {
+                    errorMsg.textContent = 'v86.js library failed to load from all sources. Please check your internet connection and refresh.';
+                }
+                if (errorOverlay) {
+                    errorOverlay.style.display = 'flex';
+                }
+            });
+        })();
+        
+        // Toolbar auto-hide and show functionality
+        let toolbarTimeout;
+        const toolbar = document.getElementById('toolbar');
+        let toolbarVisible = false;
+        
+        function showToolbar() {
+            if (toolbar) {
+                toolbar.classList.remove('hidden');
+                toolbarVisible = true;
+                clearTimeout(toolbarTimeout);
+                // Auto-hide after 5 seconds
+                toolbarTimeout = setTimeout(() => {
+                    hideToolbar();
+                }, 5000);
+            }
+        }
+        
+        function hideToolbar() {
+            if (toolbar) {
+                toolbar.classList.add('hidden');
+                toolbarVisible = false;
+            }
+        }
+        
+        function toggleToolbar() {
+            if (toolbarVisible) {
+                hideToolbar();
+            } else {
+                showToolbar();
+            }
+        }
+        
+        // Auto-hide toolbar on load
+        document.addEventListener('DOMContentLoaded', () => {
+            hideToolbar();
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+T to show/hide toolbar
+            if (e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+                e.preventDefault();
+                toggleToolbar();
+                return;
+            }
+            
+            // Settings with S (only if toolbar is visible)
+            if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey) {
+                if (toolbarVisible && typeof showSettings === 'function') {
+                    e.preventDefault();
+                    showSettings();
+                }
+            }
+            
+            // Restart with R (only if toolbar is visible)
+            if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
+                if (toolbarVisible && typeof restartVM === 'function') {
+                    e.preventDefault();
+                    restartVM();
+                }
+            }
+            
+            // F11 for fullscreen
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+            
+            // Esc to exit fullscreen or hide toolbar
+            if (e.key === 'Escape') {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else if (toolbarVisible) {
+                    hideToolbar();
+                }
+            }
+        });
+        
+        // Show toolbar on mouse move to top
+        let mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseY = e.clientY;
+            if (mouseY < 50 && !toolbarVisible) {
+                showToolbar();
+            }
+        });
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen not available:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    </script>
 </body>
 </html>

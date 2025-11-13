@@ -39,26 +39,30 @@ body {
     width: 100vw;
 }
 
-/* Toolbar */
+/* Toolbar - Enhanced Design */
 .emulator-toolbar {
     height: var(--toolbar-height);
-    background: var(--toolbar-bg);
+    background: linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(20, 20, 20, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    z-index: 100;
-    position: relative;
-    transition: transform 0.3s ease;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 1000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .emulator-toolbar.hidden {
     transform: translateY(-100%);
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .toolbar-left,
@@ -74,9 +78,10 @@ body {
 }
 
 .toolbar-center h2 {
-    font-size: 1rem;
-    font-weight: 500;
+    font-size: 0.9375rem;
+    font-weight: 600;
     color: var(--toolbar-text);
+    letter-spacing: 0.02em;
 }
 
 .status-info {
@@ -110,19 +115,26 @@ body {
 .toolbar-btn {
     width: 2.5rem;
     height: 2.5rem;
-    border-radius: 0.5rem;
-    border: none;
-    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--toolbar-text);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    padding: 0.5rem;
 }
 
 .toolbar-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.toolbar-btn:active {
+    transform: translateY(0);
 }
 
 /* VM Container */
@@ -135,7 +147,8 @@ body {
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: calc(100vh - var(--toolbar-height));
+    height: 100vh;
+    margin-top: 0;
     /* Performance optimizations */
     will-change: contents;
     transform: translateZ(0); /* GPU acceleration */
