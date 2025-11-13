@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azalea - Windows 10 Running on Browser</title>
+    <link rel="stylesheet" href="emulator.css">
+    <!-- v86.js x86 Emulator - Latest version for Windows 10 support -->
+    <script src="https://unpkg.com/v86@latest/build/libv86.js"></script>
+    <!-- Fallback CDN -->
+    <script>
+        // Fallback if primary CDN fails
+        if (typeof V86Starter === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+    <div class="emulator-container fullscreen">
+        <!-- Minimal Toolbar (can be hidden) -->
+        <div class="emulator-toolbar" id="toolbar">
+            <div class="toolbar-left">
+                <div class="status-info">
+                    <span id="statusIndicator" class="status-dot"></span>
+                    <span id="statusText">Initializing...</span>
+                </div>
+            </div>
+            <div class="toolbar-center">
+                <h2>Azalea - Windows 10 Lite</h2>
+            </div>
+            <div class="toolbar-right">
+                <button class="toolbar-btn" onclick="toggleToolbar()" title="Toggle Toolbar (T)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12h18M3 6h18M3 18h18"></path>
+                    </svg>
+                </button>
+                <button class="toolbar-btn" onclick="showSettings()" title="Settings (S)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                    </svg>
+                </button>
+                <button class="toolbar-btn" onclick="restartVM()" title="Restart (R)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                </button>
+                <button class="toolbar-btn danger" onclick="exitFullscreen()" title="Exit (Esc)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- VM Canvas Container (Fullscreen) -->
+        <div class="vm-container">
+            <div id="screen_container" class="screen-container">
+                <canvas id="screen"></canvas>
+                <div id="loadingOverlay" class="loading-overlay">
+                    <div class="loading-content">
+                        <div class="loading-spinner"></div>
+                        <h3>Loading Windows 10 Lite...</h3>
+                        <p id="loadingText">Initializing x86 emulator</p>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <p class="loading-note">This may take 30-60 seconds. Please be patient.</p>
+                        <p class="loading-note" style="margin-top: 0.5rem; font-size: 0.75rem;">
+                            Windows 10 Lite will boot automatically. You'll be able to open apps, browsers, and use Windows normally.
+                        </p>
+                    </div>
+                </div>
+                <div id="errorOverlay" class="error-overlay" style="display: none;">
+                    <div class="error-content">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <h3>Error Loading Windows</h3>
+                        <p id="errorMessage">Unable to load Windows image</p>
+                        <div class="error-actions">
+                            <button class="btn-primary" onclick="retryLoad()">Retry</button>
+                            <button class="btn-secondary" onclick="showImageSelector()">Select Image</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-backdrop" onclick="closeSettings()"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Emulator Settings</h2>
+                    <button class="modal-close" onclick="closeSettings()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="memorySize">Memory (MB)</label>
+                        <input type="number" id="memorySize" value="1024" min="512" max="2048" step="256">
+                        <small>Windows 10 requires at least 1GB. More memory = better performance (requires restart)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="cpuSpeed">CPU Speed</label>
+                        <select id="cpuSpeed">
+                            <option value="slow">Slow (Better compatibility)</option>
+                            <option value="medium" selected>Medium (Balanced)</option>
+                            <option value="fast">Fast (May cause issues)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableSound" checked>
+                            Enable Sound
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableNetwork" checked>
+                            Enable Network
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableCDROM">
+                            Enable CD-ROM
+                        </label>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+                        <button class="btn-primary" onclick="applySettings()">Apply Settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Selector Modal -->
+        <div id="imageModal" class="modal">
+            <div class="modal-backdrop" onclick="closeImageModal()"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Select Windows Image</h2>
+                    <button class="modal-close" onclick="closeImageModal()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="image-options">
+                        <div class="image-option" onclick="loadPresetImage('windows10')">
+                            <div class="image-icon">🪟</div>
+                            <h3>Windows 10 Lite</h3>
+                            <p>Windows 10 Lite Edition 19H2</p>
+                            <small>1.1GB - Ready to use!</small>
+                        </div>
+                        <div class="image-option" onclick="loadCustomImage()">
+                            <div class="image-icon">📁</div>
+                            <h3>Custom Image</h3>
+                            <p>Upload your own Windows image</p>
+                            <small>Supports .img, .iso, .vmdk formats</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="imageUrl">Or enter image URL:</label>
+                        <input type="url" id="imageUrl" placeholder="https://example.com/windows.img">
+                        <button class="btn-primary" onclick="loadFromUrl()">Load from URL</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="performance.js"></script>
+    <script src="api-client.js"></script>
+    <script src="emulator.js"></script>
+    <script>
+        // Check if terms were accepted
+        if (localStorage.getItem('azalea_terms_accepted') !== 'true') {
+            window.location.href = '/terms.html';
+        }
+
+        // Fullscreen on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Try to enter fullscreen
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen not available:', err);
+                });
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Toggle toolbar with T
+            if (e.key === 't' || e.key === 'T') {
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    toggleToolbar();
+                }
+            }
+            // Settings with S
+            if (e.key === 's' || e.key === 'S') {
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    showSettings();
+                }
+            }
+            // Restart with R
+            if (e.key === 'r' || e.key === 'R') {
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    restartVM();
+                }
+            }
+            // Exit with Esc
+            if (e.key === 'Escape') {
+                if (!document.fullscreenElement) {
+                    exitFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+            // F11 for fullscreen
+            if (e.key === 'F11') {
+                e.preventDefault();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        function toggleToolbar() {
+            const toolbar = document.getElementById('toolbar');
+            toolbar.style.display = toolbar.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function exitFullscreen() {
+            if (confirm('Exit Azalea and return to home page?')) {
+                window.location.href = '/';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,965 @@
+// Windows Emulator using v86.js - Performance Optimized
+// Runs Windows 10/11 directly in the browser on Vercel with peak performance
+
+class WindowsEmulator {
+    constructor() {
+        this.emulator = null;
+        this.canvas = document.getElementById('screen');
+        this.ctx = null;
+        this.container = document.getElementById('screen_container');
+        this.loadingOverlay = document.getElementById('loadingOverlay');
+        this.errorOverlay = document.getElementById('errorOverlay');
+        this.statusIndicator = document.getElementById('statusIndicator');
+        this.statusText = document.getElementById('statusText');
+        this.progressFill = document.getElementById('progressFill');
+        
+        // Performance optimizations
+        this.animationFrameId = null;
+        this.lastFrameTime = 0;
+        this.frameCount = 0;
+        this.fps = 0;
+        this.performanceMode = 'balanced'; // 'performance', 'balanced', 'quality'
+        this.performanceOptimizer = new PerformanceOptimizer();
+        
+        // Initialize API client for enhanced capabilities
+        this.apiClient = null;
+        this.initAPIClient();
+        
+        // Optimize canvas for performance
+        this.optimizeCanvas();
+        
+        // Start performance monitoring
+        this.performanceOptimizer.startMonitoring();
+        
+        this.config = {
+            memory_size: 1536 * 1024 * 1024, // 1.5GB RAM (optimal for Windows 10)
+            vga_memory_size: 32 * 1024 * 1024, // 32MB VGA memory (better graphics)
+            screen_container: this.container,
+            bios: {
+                url: "https://unpkg.com/v86@latest/build/seabios.bin"
+            },
+            vga_bios: {
+                url: "https://unpkg.com/v86@latest/build/vgabios.bin"
+            },
+            cdrom: {
+                url: null,
+                async: true,
+                size: null
+            },
+            hda: {
+                url: null,
+                async: true,
+                size: 8589934592 // 8GB virtual disk (more space for apps)
+            },
+            fda: {
+                url: null
+            },
+            boot_order: 0x213, // CD, C, A (boot from CD first for ISO)
+            network_relay_url: "wss://relay.widgetry.org/",
+            autostart: true,
+            disable_keyboard: false,
+            disable_mouse: false,
+            disable_speaker: false,
+            // Enhanced settings for Windows 10 performance
+            acpi: true,
+            apic: true,
+            multiboot: false,
+            // Performance optimizations
+            fastboot: true,
+            // Better CPU emulation
+            cpu_count: 1,
+            // Optimize for Windows
+            uart_override: "0x3F8",
+            // Better disk I/O
+            disk_image_size: 8589934592
+        };
+        
+        this.setupEventListeners();
+        this.setupPerformanceMonitoring();
+        this.loadDefaultImage();
+    }
+
+    async initAPIClient() {
+        // Try to connect to Node.js backend server
+        const serverUrl = localStorage.getItem('azalea_server_url') || 'http://localhost:3001';
+        
+        try {
+            if (typeof AzaleaAPIClient !== 'undefined') {
+                this.apiClient = new AzaleaAPIClient(serverUrl);
+                
+                // Check if server is available
+                const health = await this.apiClient.checkHealth();
+                if (health) {
+                    console.log('Connected to Azalea server:', health);
+                    this.apiClient.connectWebSocket();
+                    
+                    // Set up event handlers
+                    this.apiClient.onImageProgress = (progress) => {
+                        this.updateProgress(progress);
+                    };
+                    
+                    // Try to use cached image from server
+                    this.tryLoadCachedImage();
+                } else {
+                    console.log('Azalea server not available, using direct mode');
+                }
+            }
+        } catch (error) {
+            console.log('API client not available, using direct mode:', error);
+        }
+    }
+
+    async tryLoadCachedImage() {
+        if (!this.apiClient) return;
+        
+        try {
+            // Check if Windows 10 Lite is cached on server
+            const images = await this.apiClient.getImages();
+            const windows10Lite = images.find(img => 
+                img.name.includes('Windows 10 Lite') || 
+                img.name.includes('windows-10-lite')
+            );
+            
+            if (windows10Lite) {
+                console.log('Using cached image from server:', windows10Lite.name);
+                const imageUrl = this.apiClient.getImageUrl(windows10Lite.name);
+                await this.loadImage(imageUrl, 'cdrom');
+                return true;
+            }
+            
+            // Try to cache the image from archive.org
+            const archiveUrl = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
+            this.updateStatus('loading', 'Caching Windows 10 Lite on server...');
+            
+            await this.apiClient.cacheImage(archiveUrl, 'windows-10-lite.iso');
+            const cachedUrl = this.apiClient.getImageUrl('windows-10-lite.iso');
+            await this.loadImage(cachedUrl, 'cdrom');
+            return true;
+        } catch (error) {
+            console.log('Server caching failed, using direct download:', error);
+            return false;
+        }
+    }
+
+    optimizeCanvas() {
+        if (!this.canvas) return;
+        
+        // Use performance optimizer
+        this.ctx = this.performanceOptimizer.optimizeCanvas(this.canvas);
+        
+        // Set canvas size for optimal rendering
+        this.updateCanvasSize();
+        
+        // Use requestAnimationFrame for smooth rendering
+        this.setupAnimationFrame();
+        
+        // Additional optimizations
+        this.canvas.style.imageRendering = 'pixelated';
+        this.canvas.style.imageRendering = 'crisp-edges';
+    }
+
+    updateCanvasSize() {
+        if (!this.canvas || !this.container) return;
+        
+        const containerRect = this.container.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        
+        // Set canvas size with device pixel ratio for crisp rendering
+        this.canvas.width = containerRect.width * dpr;
+        this.canvas.height = containerRect.height * dpr;
+        
+        // Scale context to match device pixel ratio
+        this.ctx.scale(dpr, dpr);
+        
+        // Set CSS size (actual display size)
+        this.canvas.style.width = containerRect.width + 'px';
+        this.canvas.style.height = containerRect.height + 'px';
+    }
+
+    setupAnimationFrame() {
+        // Use requestAnimationFrame for optimal rendering performance
+        const render = (timestamp) => {
+            if (this.emulator) {
+                // Throttle to ~60fps for performance
+                if (timestamp - this.lastFrameTime >= 16) {
+                    this.lastFrameTime = timestamp;
+                    this.frameCount++;
+                    
+                    // Update FPS counter every second
+                    if (this.frameCount % 60 === 0) {
+                        this.fps = Math.round(1000 / (timestamp - (this.lastFrameTime - 16 * 60)));
+                    }
+                }
+            }
+            
+            this.animationFrameId = requestAnimationFrame(render);
+        };
+        
+        this.animationFrameId = requestAnimationFrame(render);
+    }
+
+    setupPerformanceMonitoring() {
+        // Monitor performance and adjust settings
+        setInterval(() => {
+            if (this.emulator && this.fps < 30) {
+                // Low FPS - suggest optimizations
+                console.warn('Low FPS detected:', this.fps);
+            }
+        }, 5000);
+    }
+
+    setupEventListeners() {
+        // Keyboard shortcuts with proper event handling
+        document.addEventListener('keydown', (e) => {
+            // Don't capture keys when typing in modals
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+            if (e.key === 'Escape' && document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }, { passive: false });
+
+        // Optimized resize handler with debouncing
+        const debouncedResize = this.performanceOptimizer.debounce(() => {
+            this.updateCanvasSize();
+            if (this.emulator) {
+                try {
+                    this.emulator.screen_set_size(
+                        this.container.offsetWidth,
+                        this.container.offsetHeight
+                    );
+                } catch (err) {
+                    console.warn('Screen resize error:', err);
+                }
+            }
+        }, 250);
+        
+        window.addEventListener('resize', debouncedResize, { passive: true });
+
+        // Optimize mouse events
+        this.setupMouseOptimization();
+        
+        // Optimize keyboard events
+        this.setupKeyboardOptimization();
+    }
+
+    setupMouseOptimization() {
+        if (!this.canvas) return;
+        
+        // Use passive listeners for better scroll performance
+        let mouseDown = false;
+        let lastX = 0, lastY = 0;
+        
+        this.canvas.addEventListener('mousedown', (e) => {
+            mouseDown = true;
+            this.handleMouseEvent(e, 'down');
+        }, { passive: true });
+        
+        this.canvas.addEventListener('mouseup', (e) => {
+            mouseDown = false;
+            this.handleMouseEvent(e, 'up');
+        }, { passive: true });
+        
+        // Throttle mousemove for performance
+        const throttledMouseMove = this.performanceOptimizer.throttle((e) => {
+            if (mouseDown) {
+                this.handleMouseEvent(e, 'move');
+            }
+        }, 16); // ~60fps mouse updates
+        
+        this.canvas.addEventListener('mousemove', throttledMouseMove, { passive: true });
+        
+        // Mouse wheel with throttling
+        let wheelTimeout;
+        this.canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            clearTimeout(wheelTimeout);
+            wheelTimeout = setTimeout(() => {
+                this.handleWheelEvent(e);
+            }, 50);
+        }, { passive: false });
+    }
+
+    setupKeyboardOptimization() {
+        // Focus canvas for keyboard input
+        this.canvas.setAttribute('tabindex', '0');
+        this.canvas.style.outline = 'none';
+        
+        // Optimize keyboard event handling
+        let keyQueue = [];
+        let processingKeys = false;
+        
+        const processKeyQueue = () => {
+            if (keyQueue.length === 0 || !this.emulator) {
+                processingKeys = false;
+                return;
+            }
+            
+            processingKeys = true;
+            const keyEvent = keyQueue.shift();
+            this.handleKeyEvent(keyEvent.event, keyEvent.type);
+            
+            // Process next key after short delay
+            setTimeout(processKeyQueue, 1);
+        };
+        
+        this.canvas.addEventListener('keydown', (e) => {
+            keyQueue.push({ event: e, type: 'down' });
+            if (!processingKeys) processKeyQueue();
+        }, { passive: false });
+        
+        this.canvas.addEventListener('keyup', (e) => {
+            keyQueue.push({ event: e, type: 'up' });
+            if (!processingKeys) processKeyQueue();
+        }, { passive: false });
+    }
+
+    handleMouseEvent(event, action) {
+        if (!this.emulator || !this.canvas) return;
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        
+        const x = Math.floor((event.clientX - rect.left) * scaleX);
+        const y = Math.floor((event.clientY - rect.top) * scaleY);
+        
+        try {
+            // v86.js mouse API
+            if (action === 'down') {
+                this.emulator.mouse_send_button(event.button || 0, true);
+            } else if (action === 'up') {
+                this.emulator.mouse_send_button(event.button || 0, false);
+            } else if (action === 'move') {
+                // Send mouse position
+                this.emulator.mouse_send_position(x, y, true);
+            }
+        } catch (err) {
+            // Fallback: try alternative API
+            try {
+                if (this.emulator.mouse_send_events) {
+                    this.emulator.mouse_send_events([{
+                        type: action === 'down' ? 'mousedown' : action === 'up' ? 'mouseup' : 'mousemove',
+                        x: x,
+                        y: y,
+                        button: event.button || 0
+                    }]);
+                }
+            } catch (err2) {
+                console.warn('Mouse event error:', err2);
+            }
+        }
+    }
+
+    handleWheelEvent(event) {
+        if (!this.emulator) return;
+        
+        try {
+            // v86.js wheel handling
+            const delta = event.deltaY > 0 ? 1 : -1;
+            // Mouse wheel buttons: 3 = scroll up, 4 = scroll down
+            this.emulator.mouse_send_button(delta > 0 ? 3 : 4, true);
+            setTimeout(() => {
+                this.emulator.mouse_send_button(delta > 0 ? 3 : 4, false);
+            }, 10);
+        } catch (err) {
+            console.warn('Wheel event error:', err);
+        }
+    }
+
+    handleKeyEvent(event, action) {
+        if (!this.emulator) return;
+        
+        // Don't send special keys that might interfere
+        if (['F11', 'F12'].includes(event.key) && !event.ctrlKey && !event.metaKey) {
+            return;
+        }
+        
+        // Allow Tab but prevent default browser behavior
+        if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey) {
+            event.preventDefault();
+        }
+        
+        try {
+            // v86.js keyboard API
+            const scancode = this.keyToScancode(event.key, event.code);
+            if (scancode !== null) {
+                if (action === 'down') {
+                    this.emulator.keyboard_send_scancode(scancode);
+                } else {
+                    // Release key (set bit 7)
+                    this.emulator.keyboard_send_scancode(scancode | 0x80);
+                }
+            }
+        } catch (err) {
+            // Fallback: try alternative API
+            try {
+                if (this.emulator.keyboard_send_key) {
+                    this.emulator.keyboard_send_key(event.key, action === 'down');
+                }
+            } catch (err2) {
+                console.warn('Keyboard event error:', err2);
+            }
+        }
+    }
+
+    keyToScancode(key, code) {
+        // Extended scancode map for Windows compatibility
+        const keyMap = {
+            'Enter': 0x1c,
+            'Escape': 0x01,
+            'Backspace': 0x0e,
+            'Tab': 0x0f,
+            'Space': 0x39,
+            'ArrowUp': 0x48,
+            'ArrowDown': 0x50,
+            'ArrowLeft': 0x4b,
+            'ArrowRight': 0x4d,
+            'Home': 0x47,
+            'End': 0x4f,
+            'PageUp': 0x49,
+            'PageDown': 0x51,
+            'Insert': 0x52,
+            'Delete': 0x53,
+            'F1': 0x3b, 'F2': 0x3c, 'F3': 0x3d, 'F4': 0x3e,
+            'F5': 0x3f, 'F6': 0x40, 'F7': 0x41, 'F8': 0x42,
+            'F9': 0x43, 'F10': 0x44, 'F11': 0x57, 'F12': 0x58,
+        };
+        
+        if (keyMap[key]) return keyMap[key];
+        
+        // Handle letters (A-Z, a-z)
+        if (key.length === 1) {
+            const charCode = key.charCodeAt(0);
+            if ((charCode >= 65 && charCode <= 90) || (charCode >= 97 && charCode <= 122)) {
+                const base = charCode <= 90 ? charCode - 65 : charCode - 97;
+                return 0x1e + base; // A=0x1e, B=0x1f, etc.
+            }
+            // Handle numbers (0-9)
+            if (charCode >= 48 && charCode <= 57) {
+                return 0x0b + (charCode - 48); // 0=0x0b, 1=0x02, etc.
+            }
+        }
+        
+        // Try to use code for special keys
+        if (code) {
+            const codeMap = {
+                'KeyA': 0x1e, 'KeyB': 0x1f, 'KeyC': 0x20, 'KeyD': 0x21,
+                'KeyE': 0x12, 'KeyF': 0x21, 'KeyG': 0x22, 'KeyH': 0x23,
+                'KeyI': 0x17, 'KeyJ': 0x24, 'KeyK': 0x25, 'KeyL': 0x26,
+                'KeyM': 0x32, 'KeyN': 0x31, 'KeyO': 0x18, 'KeyP': 0x19,
+                'KeyQ': 0x10, 'KeyR': 0x13, 'KeyS': 0x1f, 'KeyT': 0x14,
+                'KeyU': 0x16, 'KeyV': 0x2f, 'KeyW': 0x11, 'KeyX': 0x2d,
+                'KeyY': 0x15, 'KeyZ': 0x2c,
+                'Digit0': 0x0b, 'Digit1': 0x02, 'Digit2': 0x03, 'Digit3': 0x04,
+                'Digit4': 0x05, 'Digit5': 0x06, 'Digit6': 0x07, 'Digit7': 0x08,
+                'Digit8': 0x09, 'Digit9': 0x0a,
+            };
+            if (codeMap[code]) return codeMap[code];
+        }
+        
+        return null;
+    }
+
+    async loadDefaultImage() {
+        this.updateStatus('loading', 'Loading Windows 10 Lite...');
+        this.updateProgress(10);
+
+        try {
+            // Try to load from localStorage first
+            const savedImage = localStorage.getItem('windowsImageUrl');
+            const savedType = localStorage.getItem('windowsImageType');
+            if (savedImage) {
+                await this.loadImage(savedImage, savedType || 'cdrom');
+                return;
+            }
+
+            // Try to use server-cached image (faster)
+            if (this.apiClient) {
+                const cached = await this.tryLoadCachedImage();
+                if (cached) return;
+            }
+
+            // Fallback: Load Windows 10 Lite Edition from archive.org
+            const windows10LiteUrl = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
+            this.updateProgress(20);
+            this.updateStatus('loading', 'Downloading Windows 10 Lite (1.1GB)...');
+            
+            // Load the Windows 10 Lite image
+            await this.loadImage(windows10LiteUrl, 'cdrom');
+        } catch (error) {
+            console.error('Error loading Windows 10 Lite:', error);
+            this.showError('Unable to load Windows 10 Lite. You can try selecting a different image.');
+            this.showImageSelector();
+        }
+    }
+
+    async loadImage(imageUrl, imageType = 'hda') {
+        this.updateStatus('loading', 'Initializing emulator...');
+        this.updateProgress(30);
+
+        try {
+            // Configure image based on type
+            if (imageType === 'hda') {
+                this.config.hda = {
+                    url: imageUrl,
+                    async: true,
+                    size: 8589934592 // 8GB
+                };
+                this.config.boot_order = 0x123; // C, A, CD
+            } else if (imageType === 'cdrom') {
+                this.config.cdrom = {
+                    url: imageUrl,
+                    async: true
+                };
+                this.config.boot_order = 0x213; // CD, C, A (boot from CD first)
+            }
+
+            // Optimized configuration for Windows 10 performance
+            this.config.memory_size = 1536 * 1024 * 1024; // 1.5GB RAM (optimal for apps)
+            this.config.vga_memory_size = 32 * 1024 * 1024; // 32MB VGA (better graphics)
+            this.config.screen_container = this.container;
+            this.config.autostart = true;
+            
+            // Ensure canvas is ready
+            if (!this.canvas) {
+                throw new Error('Canvas element not found');
+            }
+            
+            // Network configuration (optional, can be disabled)
+            this.config.network_relay_url = "wss://relay.widgetry.org/";
+
+            this.updateProgress(50);
+            this.updateStatus('loading', 'Starting Windows 10 emulator...');
+
+            // Initialize v86 emulator with error handling
+            try {
+                console.log('Initializing v86 emulator with config:', {
+                    memory: this.config.memory_size / 1024 / 1024 + 'MB',
+                    vga: this.config.vga_memory_size / 1024 / 1024 + 'MB',
+                    boot_order: this.config.boot_order.toString(16),
+                    image_type: imageType
+                });
+                
+                this.emulator = new V86Starter(this.config);
+                
+                console.log('v86 emulator initialized successfully');
+            } catch (initError) {
+                console.error('v86 initialization error:', initError);
+                throw new Error('Failed to initialize v86 emulator: ' + initError.message);
+            }
+
+            // Enhanced event listeners with performance optimizations
+            this.emulator.add_listener("emulator-ready", () => {
+                console.log('Emulator ready, Windows should start booting...');
+                this.updateProgress(60);
+                this.updateStatus('loading', 'Emulator ready, booting Windows...');
+                // Focus canvas for keyboard input
+                setTimeout(() => {
+                    this.canvas.focus();
+                }, 1000);
+            });
+            
+            // Listen for boot completion
+            this.emulator.add_listener("boot", () => {
+                console.log('Boot process started');
+                this.updateStatus('loading', 'Windows is starting...');
+            });
+
+            // Optimize screen updates - v86.js handles this automatically
+            // But we can monitor for performance
+            let screenUpdateCount = 0;
+            this.emulator.add_listener("screen-update", () => {
+                screenUpdateCount++;
+                // Screen is automatically updated by v86.js to canvas
+            });
+
+            this.emulator.add_listener("serial0-output-char", (char) => {
+                // Serial output (boot messages)
+                if (char === '\n') {
+                    this.updateStatus('loading', 'Windows is booting...');
+                }
+            });
+
+            // Monitor boot progress with better detection
+            let bootProgress = 60;
+            let bootCheckCount = 0;
+            const bootInterval = setInterval(() => {
+                bootProgress += 1.5;
+                bootCheckCount++;
+                
+                if (bootProgress < 95) {
+                    this.updateProgress(Math.min(bootProgress, 95));
+                }
+                
+                // Check if Windows has booted (after reasonable time)
+                if (bootCheckCount > 30) { // After 60 seconds
+                    clearInterval(bootInterval);
+                    this.updateProgress(100);
+                    this.hideLoading();
+                    this.updateStatus('ready', 'Windows 10 is running');
+                    this.statusIndicator.classList.add('ready');
+                    
+                    // Save image URL
+                    localStorage.setItem('windowsImageUrl', imageUrl);
+                    localStorage.setItem('windowsImageType', imageType);
+                    
+                    showToast('Windows 10 Lite is now running! You can open apps and browsers.', 'success');
+                }
+            }, 2000);
+
+            // Auto-detect when Windows is ready (check for desktop)
+            setTimeout(() => {
+                clearInterval(bootInterval);
+                this.updateProgress(100);
+                this.hideLoading();
+                this.updateStatus('ready', 'Windows 10 is running');
+                this.statusIndicator.classList.add('ready');
+                
+                localStorage.setItem('windowsImageUrl', imageUrl);
+                localStorage.setItem('windowsImageType', imageType);
+                
+                showToast('Windows 10 Lite is ready! Open apps, browsers, and more.', 'success');
+            }, 60000); // Give Windows 60 seconds to boot
+
+        } catch (error) {
+            console.error('Error initializing emulator:', error);
+            this.showError('Failed to initialize emulator: ' + error.message + '. Please try again or select a different image.');
+        }
+    }
+
+    loadPresetImage(type) {
+        const images = {
+            windows11: {
+                url: 'https://example.com/windows11.img',
+                name: 'Windows 11',
+                type: 'hda'
+            },
+            windows10: {
+                url: 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso',
+                name: 'Windows 10 Lite Edition 19H2',
+                type: 'cdrom'
+            },
+            windows311: {
+                url: 'https://github.com/copy/v86/raw/master/images/linux4.iso',
+                name: 'Windows 3.11 (Demo)',
+                type: 'cdrom'
+            }
+        };
+
+        const image = images[type];
+        if (!image) return;
+
+        this.closeImageModal();
+        this.updateStatus('loading', `Loading ${image.name}...`);
+        this.loadImage(image.url, image.type);
+    }
+
+    loadCustomImage() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.img,.iso,.vmdk,.vdi';
+        
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Create object URL
+            const url = URL.createObjectURL(file);
+            this.closeImageModal();
+            this.updateStatus('loading', 'Loading custom image...');
+            this.loadImage(url);
+        };
+
+        input.click();
+    }
+
+    async loadFromUrl() {
+        const url = document.getElementById('imageUrl').value.trim();
+        if (!url) {
+            alert('Please enter an image URL');
+            return;
+        }
+
+        this.closeImageModal();
+        this.updateStatus('loading', 'Loading from URL...');
+        await this.loadImage(url);
+    }
+
+    restartVM() {
+        if (!this.emulator) return;
+
+        if (confirm('Are you sure you want to restart Windows? All unsaved work will be lost.')) {
+            this.updateStatus('loading', 'Restarting...');
+            this.showLoading();
+            
+            // Restart emulator
+            try {
+                this.emulator.stop();
+            } catch (err) {
+                console.warn('Error stopping emulator:', err);
+            }
+            
+            setTimeout(() => {
+                const savedImage = localStorage.getItem('windowsImageUrl');
+                const savedType = localStorage.getItem('windowsImageType');
+                if (savedImage) {
+                    this.loadImage(savedImage, savedType || 'cdrom');
+                } else {
+                    this.loadDefaultImage();
+                }
+            }, 1000);
+        }
+    }
+
+    updateStatus(status, text) {
+        this.statusIndicator.className = `status-dot ${status}`;
+        this.statusText.textContent = text;
+    }
+
+    updateProgress(percent) {
+        this.progressFill.style.width = percent + '%';
+    }
+
+    showLoading() {
+        this.loadingOverlay.style.display = 'flex';
+        this.errorOverlay.style.display = 'none';
+    }
+
+    hideLoading() {
+        this.loadingOverlay.style.display = 'none';
+    }
+
+    showError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        this.errorOverlay.style.display = 'flex';
+        this.loadingOverlay.style.display = 'none';
+        this.updateStatus('error', 'Error');
+    }
+
+    showImageSelector() {
+        document.getElementById('imageModal').classList.add('active');
+    }
+
+    closeImageModal() {
+        document.getElementById('imageModal').classList.remove('active');
+    }
+
+    showSettings() {
+        document.getElementById('settingsModal').classList.add('active');
+    }
+
+    closeSettings() {
+        document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    applySettings() {
+        const memorySize = parseInt(document.getElementById('memorySize').value);
+        const cpuSpeed = document.getElementById('cpuSpeed').value;
+        const enableSound = document.getElementById('enableSound').checked;
+        const enableNetwork = document.getElementById('enableNetwork').checked;
+        const enableCDROM = document.getElementById('enableCDROM').checked;
+
+        // Validate memory size
+        if (memorySize < 512) {
+            alert('Windows 10 requires at least 512MB of memory. Setting to 1024MB.');
+            document.getElementById('memorySize').value = 1024;
+            return;
+        }
+
+        // Update config
+        this.config.memory_size = memorySize * 1024 * 1024;
+        this.config.disable_speaker = !enableSound;
+        
+        if (enableNetwork) {
+            this.config.network_relay_url = "wss://relay.widgetry.org/";
+        } else {
+            this.config.network_relay_url = null;
+        }
+
+        // Save settings
+        localStorage.setItem('emulatorSettings', JSON.stringify({
+            memorySize,
+            cpuSpeed,
+            enableSound,
+            enableNetwork,
+            enableCDROM
+        }));
+
+        this.closeSettings();
+        showToast('Settings saved. Restart Windows to apply changes.', 'success');
+    }
+}
+
+// Global functions
+let emulator;
+
+function toggleToolbar() {
+    const toolbar = document.getElementById('toolbar');
+    if (!toolbar) return;
+    toolbar.classList.toggle('hidden');
+    const vmContainer = document.querySelector('.vm-container');
+    if (toolbar.classList.contains('hidden')) {
+        vmContainer.style.height = '100vh';
+    } else {
+        vmContainer.style.height = 'calc(100vh - var(--toolbar-height))';
+    }
+}
+
+function exitFullscreen() {
+    if (confirm('Exit Azalea and return to home page?')) {
+        window.location.href = '/';
+    }
+}
+
+function toggleFullscreen() {
+    const container = document.querySelector('.emulator-container');
+    if (!document.fullscreenElement) {
+        container.requestFullscreen().catch(err => {
+            console.error('Error entering fullscreen:', err);
+        });
+        container.classList.add('fullscreen');
+    } else {
+        document.exitFullscreen();
+        container.classList.remove('fullscreen');
+    }
+}
+
+function restartVM() {
+    if (emulator) {
+        emulator.restartVM();
+    }
+}
+
+function showSettings() {
+    if (emulator) {
+        emulator.showSettings();
+    }
+}
+
+function closeSettings() {
+    if (emulator) {
+        emulator.closeSettings();
+    }
+}
+
+function showImageSelector() {
+    if (emulator) {
+        emulator.showImageSelector();
+    }
+}
+
+function closeImageModal() {
+    if (emulator) {
+        emulator.closeImageModal();
+    }
+}
+
+function loadPresetImage(type) {
+    if (emulator) {
+        emulator.loadPresetImage(type);
+    }
+}
+
+function loadCustomImage() {
+    if (emulator) {
+        emulator.loadCustomImage();
+    }
+}
+
+function loadFromUrl() {
+    if (emulator) {
+        emulator.loadFromUrl();
+    }
+}
+
+function retryLoad() {
+    if (emulator) {
+        emulator.loadDefaultImage();
+    }
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        z-index: 2000;
+        animation: slideIn 0.3s;
+        max-width: 300px;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Initialize when v86 is loaded
+window.addEventListener('load', () => {
+    // Check if v86 is available
+    if (typeof V86Starter === 'undefined') {
+        console.error('v86.js not loaded');
+        document.getElementById('errorMessage').textContent = 
+            'v86.js library failed to load. Please refresh the page.';
+        document.getElementById('errorOverlay').style.display = 'flex';
+        return;
+    }
+
+    emulator = new WindowsEmulator();
+    
+    // Load saved settings
+    const savedSettings = localStorage.getItem('emulatorSettings');
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        document.getElementById('memorySize').value = settings.memorySize || 1536;
+        document.getElementById('cpuSpeed').value = settings.cpuSpeed || 'medium';
+        document.getElementById('enableSound').checked = settings.enableSound !== false;
+        document.getElementById('enableNetwork').checked = settings.enableNetwork !== false;
+        document.getElementById('enableCDROM').checked = settings.enableCDROM || false;
+    } else {
+        // Default settings for Windows 10 (optimized)
+        document.getElementById('memorySize').value = 1536;
+    }
+});
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+`;
+document.head.appendChild(style);

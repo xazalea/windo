@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Desktop - RDP Viewer</title>
+    <link rel="stylesheet" href="rdp-viewer.css">
+</head>
+<body>
+    <div class="rdp-container">
+        <!-- Toolbar -->
+        <div class="rdp-toolbar">
+            <div class="toolbar-left">
+                <button class="toolbar-btn" onclick="goBack()" title="Back">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div class="connection-info">
+                    <span id="connectionStatus" class="status-indicator disconnected"></span>
+                    <span id="connectionText">Disconnected</span>
+                </div>
+            </div>
+            <div class="toolbar-center">
+                <h2 id="vmName">Windows Desktop</h2>
+            </div>
+            <div class="toolbar-right">
+                <button class="toolbar-btn" onclick="toggleFullscreen()" title="Fullscreen">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                    </svg>
+                </button>
+                <button class="toolbar-btn" onclick="showSettings()" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                    </svg>
+                </button>
+                <button class="toolbar-btn danger" onclick="disconnect()" title="Disconnect">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- RDP Canvas Container -->
+        <div class="rdp-viewer-container">
+            <div id="rdpCanvasContainer" class="rdp-canvas-container">
+                <canvas id="rdpCanvas"></canvas>
+                <div id="loadingOverlay" class="loading-overlay">
+                    <div class="loading-spinner"></div>
+                    <p>Connecting to Windows desktop...</p>
+                </div>
+                <div id="errorOverlay" class="error-overlay" style="display: none;">
+                    <div class="error-content">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <h3>Connection Error</h3>
+                        <p id="errorMessage">Unable to connect to Windows desktop</p>
+                        <button class="btn-primary" onclick="retryConnection()">Retry</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Modal -->
+        <div id="connectionModal" class="modal active">
+            <div class="modal-backdrop"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Connect to Windows Desktop</h2>
+                </div>
+                <form id="connectionForm" class="modal-body">
+                    <div class="form-group">
+                        <label for="rdpServer">Server Address</label>
+                        <input type="text" id="rdpServer" placeholder="20.123.45.67" required>
+                        <small>Enter the IP address of your Windows VM</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rdpPort">Port</label>
+                            <input type="number" id="rdpPort" value="3389" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="rdpGatewayPort">Gateway Port</label>
+                            <input type="number" id="rdpGatewayPort" value="8080" required>
+                            <small>WebSocket gateway port</small>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rdpUser">Username</label>
+                            <input type="text" id="rdpUser" placeholder="adminuser" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="rdpPass">Password</label>
+                            <input type="password" id="rdpPass" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="rdpResolution">Resolution</label>
+                        <select id="rdpResolution">
+                            <option value="1920x1080">1920x1080 (Full HD)</option>
+                            <option value="1366x768">1366x768</option>
+                            <option value="1280x720">1280x720 (HD)</option>
+                            <option value="1024x768">1024x768</option>
+                            <option value="fit">Fit to Screen</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="goBack()">Cancel</button>
+                        <button type="submit" class="btn-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>
+                            </svg>
+                            Connect
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-backdrop" onclick="closeSettings()"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>RDP Settings</h2>
+                    <button class="modal-close" onclick="closeSettings()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableClipboard" checked>
+                            Enable Clipboard Sharing
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableAudio" checked>
+                            Enable Audio Redirection
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enablePrinting" checked>
+                            Enable Printer Redirection
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="colorDepth">Color Depth</label>
+                        <select id="colorDepth">
+                            <option value="8">8-bit (256 colors)</option>
+                            <option value="16">16-bit (65K colors)</option>
+                            <option value="24" selected>24-bit (True color)</option>
+                            <option value="32">32-bit (True color + Alpha)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load RDP Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/noVNC@1.4.0/core/rfb.js"></script>
+    <script src="rdp-viewer.js"></script>
+</body>
+</html>
+

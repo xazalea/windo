@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Deploy and manage Windows 10/11 virtual machines via web browser">
+    <title>Windows VM Portal - Cloud VM Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-content">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 3H21V21H3V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M3 9H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M9 3V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>Windows VM Portal</span>
+                </div>
+                <div class="nav-actions">
+                    <button class="nav-btn" onclick="showDeployModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Deploy VM
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Hero Section -->
+            <section class="hero">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        <span class="gradient-text">Windows VM</span> Management
+                    </h1>
+                    <p class="hero-subtitle">
+                        Run Windows 10 Lite (1.1GB) directly in your browser on Vercel - Fully functional Windows emulation!
+                    </p>
+                    <div class="hero-actions">
+                        <button class="btn-primary btn-large" onclick="openAzalea()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            Launch Azalea
+                        </button>
+                        <button class="btn-secondary btn-large" onclick="showDeployModal()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M5 12h14"></path>
+                            </svg>
+                            Deploy to Azure
+                        </button>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="floating-card card-1"></div>
+                    <div class="floating-card card-2"></div>
+                    <div class="floating-card card-3"></div>
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section class="quick-actions">
+                <div class="action-card" onclick="showDeployModal()">
+                    <div class="action-icon deploy">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14M5 12h14"></path>
+                        </svg>
+                    </div>
+                    <h3>Deploy VM</h3>
+                    <p>Create a new Windows virtual machine</p>
+                </div>
+                <div class="action-card" onclick="openAzalea()">
+                    <div class="action-icon connect">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </div>
+                    <h3>Launch Azalea</h3>
+                    <p>Windows 10 Lite on Vercel</p>
+                </div>
+                <div class="action-card" onclick="showConnectModal()">
+                    <div class="action-icon connect">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"></path>
+                        </svg>
+                    </div>
+                    <h3>Connect to VM</h3>
+                    <p>Remote desktop to Azure VM</p>
+                </div>
+                <div class="action-card" onclick="showStatus()">
+                    <div class="action-icon status">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <h3>Status</h3>
+                    <p>Monitor VM health</p>
+                </div>
+                <div class="action-card" onclick="showManageModal()">
+                    <div class="action-icon manage">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"></path>
+                        </svg>
+                    </div>
+                    <h3>Manage</h3>
+                    <p>Configure settings</p>
+                </div>
+            </section>
+
+            <!-- VM List -->
+            <section class="vm-section">
+                <div class="section-header">
+                    <h2>Your Virtual Machines</h2>
+                    <button class="btn-icon" onclick="refreshVMList()" title="Refresh">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="vmItems" class="vm-grid">
+                    <!-- VM items will be populated by JavaScript -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Deploy Modal -->
+        <div id="deployModal" class="modal">
+            <div class="modal-backdrop" onclick="closeModal('deployModal')"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Deploy Windows VM</h2>
+                    <button class="modal-close" onclick="closeModal('deployModal')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <form id="deployForm" class="modal-body">
+                    <div class="form-group">
+                        <label for="vmName">VM Name</label>
+                        <input type="text" id="vmName" placeholder="my-windows-vm" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vmSize">VM Size</label>
+                            <select id="vmSize">
+                                <option value="Standard_D2s_v3">Standard_D2s_v3 (2 vCPU, 8GB)</option>
+                                <option value="Standard_D4s_v3">Standard_D4s_v3 (4 vCPU, 16GB)</option>
+                                <option value="Standard_D8s_v3">Standard_D8s_v3 (8 vCPU, 32GB)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="windowsVersion">Windows Version</label>
+                            <select id="windowsVersion">
+                                <option value="win11-21h2-pro">Windows 11 Pro</option>
+                                <option value="win10-21h2-pro">Windows 10 Pro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adminUsername">Admin Username</label>
+                            <input type="text" id="adminUsername" placeholder="adminuser" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminPassword">Admin Password</label>
+                            <input type="password" id="adminPassword" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="region">Region</label>
+                        <select id="region">
+                            <option value="eastus">East US</option>
+                            <option value="westus">West US</option>
+                            <option value="westeurope">West Europe</option>
+                            <option value="eastasia">East Asia</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('deployModal')">Cancel</button>
+                        <button type="submit" class="btn-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M5 12h14"></path>
+                            </svg>
+                            Deploy VM
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Connect Modal -->
+        <div id="connectModal" class="modal">
+            <div class="modal-backdrop" onclick="closeModal('connectModal')"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Connect to Windows VM</h2>
+                    <button class="modal-close" onclick="closeModal('connectModal')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="vmIp">VM IP Address</label>
+                        <input type="text" id="vmIp" placeholder="20.123.45.67">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rdpUsername">Username</label>
+                            <input type="text" id="rdpUsername" placeholder="adminuser" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="rdpPassword">Password</label>
+                            <input type="password" id="rdpPassword" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('connectModal')">Cancel</button>
+                        <button onclick="connectRDP()" class="btn-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"></path>
+                            </svg>
+                            Download RDP File
+                        </button>
+                        <button onclick="connectWebRDP()" class="btn-secondary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            Web RDP Client
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manage Modal -->
+        <div id="manageModal" class="modal">
+            <div class="modal-backdrop" onclick="closeModal('manageModal')"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h2>Manage VM</h2>
+                    <button class="modal-close" onclick="closeModal('manageModal')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="manage-options">
+                        <button onclick="restartVM()" class="btn-action warning">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            Restart VM
+                        </button>
+                        <button onclick="stopVM()" class="btn-action warning">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="6" y="4" width="4" height="16"></rect>
+                                <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                            Stop VM
+                        </button>
+                        <button onclick="deleteVM()" class="btn-action danger">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Delete VM
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Redirect to terms if not accepted
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only check on main page, not on terms page
+            if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                // Allow access to main page, terms check happens when clicking Launch Azalea
+            }
+        });
+    </script>
+</body>
+</html>

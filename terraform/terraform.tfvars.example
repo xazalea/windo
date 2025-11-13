@@ -1,0 +1,25 @@
+# Copy this file to terraform.tfvars and update with your values
+
+resource_group_name = "windows-vm-rg"
+location           = "eastus"
+vm_name            = "windows-vm"
+vm_size            = "Standard_D2s_v3"
+
+admin_username = "adminuser"
+admin_password = "YourSecurePassword123!" # Change this!
+
+# Windows 11 Pro
+image_publisher = "MicrosoftWindowsDesktop"
+image_offer      = "Windows-11"
+image_sku        = "win11-21h2-pro"
+
+# Windows 10 Pro (alternative)
+# image_publisher = "MicrosoftWindowsDesktop"
+# image_offer      = "Windows-10"
+# image_sku        = "win10-21h2-pro"
+
+tags = {
+  Environment = "Development"
+  Project     = "Windows-VM-Web"
+}
+
