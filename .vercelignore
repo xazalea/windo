@@ -1,0 +1,6 @@
+# Ignore everything except web directory for Vercel
+*
+!web/
+web/*
+!web/**
+
