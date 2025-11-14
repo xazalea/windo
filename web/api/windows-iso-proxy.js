@@ -5,7 +5,7 @@ export default async function handler(req, res) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS, HEAD');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
-        res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
         return res.status(200).end();
     }
     
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         // Windows 10 Lite ISO URL
         const isoUrl = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
         
-        // Support Range requests for streaming
+        // Support Range requests for streaming (v86.js uses Range requests for large files)
         const range = req.headers.range;
         const headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -61,13 +61,25 @@ export default async function handler(req, res) {
         res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
         res.setHeader('Accept-Ranges', 'bytes');
         
-        // Stream the response
-        const arrayBuffer = await response.arrayBuffer();
-        return res.send(Buffer.from(arrayBuffer));
+        // Stream the response in chunks (Vercel has response size limits)
+        // For large files, we stream chunk by chunk
+        const reader = response.body.getReader();
+        const chunks = [];
+        let done = false;
+        
+        while (!done) {
+            const { value, done: readerDone } = await reader.read();
+            done = readerDone;
+            if (value) {
+                chunks.push(Buffer.from(value));
+            }
+        }
+        
+        const buffer = Buffer.concat(chunks);
+        return res.send(buffer);
         
     } catch (error) {
         console.error('Proxy error:', error);
         return res.status(500).json({ error: error.message });
     }
 }
-

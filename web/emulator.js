@@ -142,8 +142,8 @@ class WindowsEmulator {
                 return true;
             }
             
-            // Try to cache the image from archive.org
-            const archiveUrl = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
+            // Try to cache the image from archive.org via proxy
+            const archiveUrl = window.location.origin + '/api/windows-iso-proxy';
             this.updateStatus('loading', 'Caching Windows 10 Lite on server...');
             
             await this.apiClient.cacheImage(archiveUrl, 'windows-10-lite.iso');
@@ -538,17 +538,24 @@ class WindowsEmulator {
         this.updateProgress(30, 'Configuring emulator settings...');
 
         try {
+            // Ensure URL is absolute (for proxy)
+            let finalUrl = imageUrl;
+            if (imageUrl.startsWith('/api/')) {
+                // Make it absolute URL for v86.js
+                finalUrl = window.location.origin + imageUrl;
+            }
+            
             // Configure image based on type
             if (imageType === 'hda') {
                 this.config.hda = {
-                    url: imageUrl,
+                    url: finalUrl,
                     async: true,
                     size: 8589934592 // 8GB
                 };
                 this.config.boot_order = 0x123; // C, A, CD
             } else if (imageType === 'cdrom') {
                 this.config.cdrom = {
-                    url: imageUrl,
+                    url: finalUrl,
                     async: true
                 };
                 this.config.boot_order = 0x213; // CD, C, A (boot from CD first)
@@ -755,7 +762,7 @@ class WindowsEmulator {
                 type: 'hda'
             },
             windows10: {
-                url: 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso',
+                url: window.location.origin + '/api/windows-iso-proxy',
                 name: 'Windows 10 Lite Edition 19H2',
                 type: 'cdrom'
             },
