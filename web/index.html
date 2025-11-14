@@ -395,6 +395,13 @@
                 }
             }
             
+            // Dynamic Island toggle with I key
+            if ((e.key === 'i' || e.key === 'I') && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+                e.preventDefault();
+                toggleDynamicIsland();
+                return;
+            }
+            
             // Restart with R (only if toolbar is visible)
             if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
                 if (toolbarVisible && typeof restartVM === 'function') {
