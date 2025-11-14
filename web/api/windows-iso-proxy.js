@@ -1,5 +1,5 @@
 // Vercel serverless function to proxy Windows ISO and avoid CORS
-// Note: Vercel has a 50MB response limit, so we need to handle Range requests properly
+// v86.js uses Range requests for async loading, so we need to handle those properly
 export default async function handler(req, res) {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
         
         if (range) {
             headers['Range'] = range;
+            console.log('Range request:', range);
         }
         
         const response = await fetch(isoUrl, { headers });
@@ -64,13 +65,12 @@ export default async function handler(req, res) {
         res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
         res.setHeader('Accept-Ranges', 'bytes');
         
-        // Stream the response in chunks
-        // For Range requests, we only need to stream the requested range
+        // For Range requests, v86.js only requests small chunks (typically 64KB-1MB)
+        // So we can safely stream these without hitting Vercel's 50MB limit
         const reader = response.body.getReader();
         const chunks = [];
         let done = false;
         let totalSize = 0;
-        const MAX_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
         
         while (!done) {
             const { value, done: readerDone } = await reader.read();
@@ -78,21 +78,16 @@ export default async function handler(req, res) {
             if (value) {
                 chunks.push(Buffer.from(value));
                 totalSize += value.length;
-                
-                // For Range requests, we can stop early if we've read enough
-                if (range && totalSize > MAX_CHUNK_SIZE) {
-                    // We've read enough for this range request
-                    break;
-                }
             }
         }
         
         const buffer = Buffer.concat(chunks);
         
-        // For very large files, we might hit Vercel's limit
-        // But v86.js uses Range requests, so it should only request small chunks
-        if (buffer.length > 50 * 1024 * 1024) {
-            console.warn('Response size exceeds 50MB, this might fail on Vercel');
+        // Log for debugging
+        if (range) {
+            console.log(`Range request completed: ${range}, size: ${buffer.length} bytes`);
+        } else {
+            console.log(`Full request completed, size: ${buffer.length} bytes`);
         }
         
         return res.send(buffer);

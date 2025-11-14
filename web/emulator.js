@@ -554,9 +554,17 @@ class WindowsEmulator {
                 };
                 this.config.boot_order = 0x123; // C, A, CD
             } else if (imageType === 'cdrom') {
+                // Ensure we use the proxy URL, not archive.org
+                if (finalUrl.includes('archive.org') && !finalUrl.includes('/api/')) {
+                    console.warn('Replacing archive.org URL with proxy');
+                    finalUrl = window.location.origin + '/api/windows-iso-proxy';
+                }
+                console.log('Setting CDROM URL to:', finalUrl);
                 this.config.cdrom = {
                     url: finalUrl,
-                    async: true
+                    async: true,
+                    // Size helps v86.js optimize loading (1.1GB = 1153433600 bytes)
+                    size: 1153433600
                 };
                 this.config.boot_order = 0x213; // CD, C, A (boot from CD first)
             }
