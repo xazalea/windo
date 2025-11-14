@@ -329,32 +329,7 @@ class InBrowserHeadscaleServer {
         }
     }
 
-    async setupServer() {
-        // Use Service Worker to intercept requests and act as a server
-        if ('serviceWorker' in navigator) {
-            try {
-                // Register service worker for request interception
-                const registration = await navigator.serviceWorker.register(
-                    new URL('headscale-sw.js', import.meta.url),
-                    { scope: '/' }
-                );
-
-                // Wait for service worker to be ready
-                await navigator.serviceWorker.ready;
-
-                console.log('Headscale service worker registered');
-            } catch (error) {
-                console.warn('Service Worker not available, using fetch proxy:', error);
-                // Fallback to fetch proxy
-                this.setupFetchProxy();
-            }
-        } else {
-            // Fallback: Use fetch proxy
-            this.setupFetchProxy();
-        }
-    }
-
-    setupFetchProxy() {
+    setupFetchInterception() {
         // Create a simple proxy that handles Headscale API requests
         // This intercepts fetch calls to the Headscale URL
         const originalFetch = window.fetch;

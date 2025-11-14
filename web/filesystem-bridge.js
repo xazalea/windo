@@ -32,15 +32,20 @@ class FilesystemBridge {
     async ensureVirtualDrive() {
         try {
             // Ensure virtual drive exists in storage index
-            if (!this.storageManager.storageIndex.directories[this.virtualDrivePath]) {
+            if (!this.storageManager.storageIndex.directories || !this.storageManager.storageIndex.directories[this.virtualDrivePath]) {
+                if (!this.storageManager.storageIndex.directories) {
+                    this.storageManager.storageIndex.directories = {};
+                }
                 this.storageManager.storageIndex.directories[this.virtualDrivePath] = {
                     path: this.virtualDrivePath,
                     created: new Date().toISOString()
                 };
+                // Save to localStorage (always works)
                 await this.storageManager.saveStorageIndex();
             }
         } catch (error) {
             console.warn('Error ensuring virtual drive:', error);
+            // Continue anyway - localStorage will be used
         }
     }
 
@@ -180,14 +185,34 @@ class FilesystemBridge {
                 type: 'cloud'
             };
             
-            // Store disk metadata
-            await this.storageManager.storeFile(
-                `${this.virtualDrivePath}/.disk.json`,
-                JSON.stringify(diskInfo),
-                { mimeType: 'application/json' }
-            );
+            // Store disk metadata in localStorage (always works)
+            if (!this.storageManager.storageIndex.files) {
+                this.storageManager.storageIndex.files = {};
+            }
+            this.storageManager.storageIndex.files[`.disk.json`] = {
+                name: '.disk.json',
+                path: '.disk.json',
+                size: JSON.stringify(diskInfo).length,
+                mimeType: 'application/json',
+                data: JSON.stringify(diskInfo),
+                created: new Date().toISOString()
+            };
+            
+            // Try to upload to File.IO (optional, may fail)
+            try {
+                await this.storageManager.storeFile(
+                    `${this.virtualDrivePath}/.disk.json`,
+                    JSON.stringify(diskInfo),
+                    { mimeType: 'application/json' }
+                );
+            } catch (uploadError) {
+                console.warn('Could not upload disk metadata to File.IO, using localStorage:', uploadError);
+            }
             
             // Create some default directories
+            if (!this.storageManager.storageIndex.directories) {
+                this.storageManager.storageIndex.directories = {};
+            }
             const defaultDirs = ['Downloads', 'Documents', 'Programs', 'Apps'];
             for (const dir of defaultDirs) {
                 this.storageManager.storageIndex.directories[`${this.virtualDrivePath}/${dir}`] = {
@@ -196,12 +221,21 @@ class FilesystemBridge {
                 };
             }
             
+            // Save to localStorage (always works)
             await this.storageManager.saveStorageIndex();
             
             return diskInfo;
         } catch (error) {
             console.error('Error creating virtual drive:', error);
-            throw error;
+            // Return a basic disk info even if storage fails
+            return {
+                id: 'cloud_drive',
+                name: 'Cloud Storage (Local)',
+                path: this.virtualDrivePath,
+                size: 0,
+                created: new Date().toISOString(),
+                type: 'local'
+            };
         }
     }
 
