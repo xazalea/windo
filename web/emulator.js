@@ -27,6 +27,10 @@ class WindowsEmulator {
         if (typeof DynamicIsland !== 'undefined') {
             this.dynamicIsland = new DynamicIsland();
             this.dynamicIsland.setEmulator(this);
+            // Store globally for chat panel
+            if (typeof window !== 'undefined') {
+                window.dynamicIslandInstance = this.dynamicIsland;
+            }
         }
         
         // Initialize API client for enhanced capabilities
@@ -745,6 +749,7 @@ class WindowsEmulator {
                 if (this.dynamicIsland) {
                     this.dynamicIsland.updateStatus('Windows ready', 3000);
                     this.dynamicIsland.updateProgress(100);
+                    this.dynamicIsland.setWindowsReady(true);
                 }
             }, 60000); // Assume boot complete after 60 seconds
             
