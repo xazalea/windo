@@ -192,8 +192,102 @@ class DynamicIsland {
         this.positionTopCenter();
         this.startAutoHide();
         
+        // Setup error monitoring
+        this.setupErrorMonitoring();
+        
         // Show boot mode initially
         this.enterBootMode();
+    }
+    
+    setupErrorMonitoring() {
+        // Monitor console errors
+        const originalError = console.error;
+        const self = this;
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            
+            // Check if it's a relevant error (not just warnings)
+            const errorMsg = args.join(' ');
+            if (errorMsg.includes('Failed to load') || 
+                errorMsg.includes('404') || 
+                errorMsg.includes('CORS') ||
+                errorMsg.includes('boot') ||
+                errorMsg.includes('disk') ||
+                errorMsg.includes('error') ||
+                errorMsg.includes('Error')) {
+                
+                // Update island with error state
+                self.setStatusColor('error');
+                const statusEl = document.getElementById('island-status');
+                if (statusEl) {
+                    const shortMsg = errorMsg.length > 40 ? errorMsg.substring(0, 37) + '...' : errorMsg;
+                    statusEl.textContent = shortMsg;
+                    self.statusText = shortMsg;
+                }
+                
+                // Auto-clear after 5 seconds
+                setTimeout(() => {
+                    if (self.statusText === errorMsg.substring(0, 40)) {
+                        self.setStatusColor('default');
+                        const statusEl = document.getElementById('island-status');
+                        if (statusEl) {
+                            statusEl.textContent = 'wind0';
+                            self.statusText = 'wind0';
+                        }
+                    }
+                }, 5000);
+            }
+        };
+        
+        // Monitor window errors
+        window.addEventListener('error', (event) => {
+            if (event.error) {
+                self.setStatusColor('error');
+                const statusEl = document.getElementById('island-status');
+                if (statusEl) {
+                    const errorMsg = event.error.message ? 
+                        (event.error.message.length > 40 ? event.error.message.substring(0, 37) + '...' : event.error.message) :
+                        'Error occurred';
+                    statusEl.textContent = errorMsg;
+                    self.statusText = errorMsg;
+                }
+                
+                setTimeout(() => {
+                    if (self.statusText === errorMsg) {
+                        self.setStatusColor('default');
+                        const statusEl = document.getElementById('island-status');
+                        if (statusEl) {
+                            statusEl.textContent = 'wind0';
+                            self.statusText = 'wind0';
+                        }
+                    }
+                }, 5000);
+            }
+        });
+        
+        // Monitor unhandled promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            self.setStatusColor('error');
+            const statusEl = document.getElementById('island-status');
+            if (statusEl) {
+                const errorMsg = event.reason?.message || event.reason || 'Promise rejected';
+                const shortMsg = errorMsg.length > 40 ? errorMsg.substring(0, 37) + '...' : errorMsg;
+                statusEl.textContent = shortMsg;
+                self.statusText = shortMsg;
+            }
+            
+            setTimeout(() => {
+                if (self.statusText === shortMsg) {
+                    self.setStatusColor('default');
+                    const statusEl = document.getElementById('island-status');
+                    if (statusEl) {
+                        statusEl.textContent = 'wind0';
+                        self.statusText = 'wind0';
+                    }
+                }
+            }, 5000);
+        });
     }
 
     createBootModePanel() {
