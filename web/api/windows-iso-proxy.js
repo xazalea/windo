@@ -1,5 +1,7 @@
 // Vercel serverless function to proxy Windows ISO and avoid CORS
 // v86.js uses Range requests for async loading, so we need to handle those properly
+
+// Support both Vercel and standard Node.js formats
 export default async function handler(req, res) {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {

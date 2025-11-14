@@ -524,16 +524,36 @@ class WindowsEmulator {
             }
 
             // Fallback: Load Windows 10 Lite Edition via proxy (avoids CORS)
-            // Use Vercel serverless function to proxy the ISO file
+            // Try Vercel serverless function first, fallback to archive.org directly
             const windows10LiteUrl = '/api/windows-iso-proxy';
+            const archiveOrgUrl = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
+            
             this.updateProgress(20);
             this.updateStatus('loading', 'Loading Windows 10 Lite (1.1GB)...');
             if (this.dynamicIsland) {
                 this.dynamicIsland.updateStatus('Loading Windows image...', 0);
             }
             
-            // Load the Windows 10 Lite image via proxy
-            await this.loadImage(windows10LiteUrl, 'cdrom');
+            // Try proxy first, fallback to direct URL if proxy fails
+            try {
+                // Test if proxy is available
+                const testResponse = await fetch(windows10LiteUrl, { method: 'HEAD' });
+                if (testResponse.ok || testResponse.status === 206) {
+                    // Proxy is available, use it
+                    await this.loadImage(windows10LiteUrl, 'cdrom');
+                } else {
+                    throw new Error('Proxy returned ' + testResponse.status);
+                }
+            } catch (proxyError) {
+                console.warn('Proxy not available, trying direct URL:', proxyError);
+                // Fallback to archive.org directly (may have CORS issues, but worth trying)
+                try {
+                    await this.loadImage(archiveOrgUrl, 'cdrom');
+                } catch (directError) {
+                    console.error('Both proxy and direct URL failed:', directError);
+                    throw new Error('Unable to load Windows image. Please check your internet connection.');
+                }
+            }
         } catch (error) {
             console.error('Error loading Windows 10 Lite:', error);
             this.showError('Unable to load Windows 10 Lite. You can try selecting a different image.');
