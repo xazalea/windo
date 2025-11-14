@@ -605,12 +605,16 @@ class WindowsEmulator {
             this.config.memory_size = 1536 * 1024 * 1024; // 1.5GB RAM (optimal for apps)
             this.config.vga_memory_size = 32 * 1024 * 1024; // 32MB VGA (better graphics)
             
-            // Ensure screen_container is a DOM element, not a string
-            if (!this.container || typeof this.container === 'string') {
+            // Ensure screen_container is a DOM element, not a string or null
+            if (!this.container || typeof this.container !== 'object' || !this.container.nodeType) {
                 this.container = document.getElementById('screen_container');
             }
-            if (!this.container) {
-                throw new Error('Screen container element not found');
+            if (!this.container || !this.container.nodeType) {
+                throw new Error('Screen container element not found. Make sure #screen_container exists in the DOM.');
+            }
+            // Verify it's actually a DOM element with getElementsByTagName method
+            if (typeof this.container.getElementsByTagName !== 'function') {
+                throw new Error('Screen container is not a valid DOM element');
             }
             this.config.screen_container = this.container;
             this.config.autostart = true;
