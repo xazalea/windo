@@ -1086,7 +1086,10 @@ class DynamicIsland {
                 <div class="network-config">
                     <div class="form-group">
                         <label for="headscale-url">Headscale Server URL</label>
-                        <input type="url" id="headscale-url" class="network-input" placeholder="https://headscale.example.com" value="${this.emulator?.headscaleClient?.serverUrl || ''}">
+                        <input type="url" id="headscale-url" class="network-input" placeholder="Leave empty to use browser server" value="${this.emulator?.headscaleClient?.serverUrl || ''}">
+                        <small style="color: rgba(255,255,255,0.6); font-size: 11px; margin-top: 4px; display: block;">
+                            Leave empty to automatically start a browser-based server
+                        </small>
                     </div>
                     <div class="form-group">
                         <label for="headscale-api-key">API Key (Optional)</label>
@@ -1131,12 +1134,31 @@ class DynamicIsland {
             
             if (connectBtn && this.emulator && this.emulator.headscaleClient) {
                 connectBtn.onclick = async () => {
-                    const url = urlInput?.value || '';
+                    let url = urlInput?.value || '';
                     const apiKey = apiKeyInput?.value || null;
                     
+                    // If no URL provided, try to start BrowserPod server
                     if (!url) {
-                        this.updateStatus('Please enter Headscale server URL', 3000, 'error');
-                        return;
+                        this.updateStatus('Starting browser server...', 0, 'loading');
+                        try {
+                            if (typeof BrowserPodHeadscale !== 'undefined') {
+                                const browserpodServer = new BrowserPodHeadscale();
+                                const result = await browserpodServer.start();
+                                if (result.success) {
+                                    url = result.url;
+                                    urlInput.value = url;
+                                    this.emulator.headscaleClient.browserpodServer = browserpodServer;
+                                    this.updateStatus('Browser server started', 2000, 'success');
+                                } else {
+                                    throw new Error('Failed to start browser server');
+                                }
+                            } else {
+                                throw new Error('BrowserPod not available. Please enter a Headscale server URL.');
+                            }
+                        } catch (error) {
+                            this.updateStatus('Please enter Headscale server URL or enable BrowserPod', 3000, 'error');
+                            return;
+                        }
                     }
                     
                     this.emulator.headscaleClient.configure(url, apiKey);

@@ -4,7 +4,7 @@
 
 class HeadscaleClient {
     constructor() {
-        this.serverUrl = localStorage.getItem('wind0_headscale_url') || 'https://headscale.example.com';
+        this.serverUrl = localStorage.getItem('wind0_headscale_url') || null;
         this.apiKey = localStorage.getItem('wind0_headscale_api_key') || null;
         this.machineId = localStorage.getItem('wind0_headscale_machine_id') || null;
         this.connected = false;
@@ -12,6 +12,27 @@ class HeadscaleClient {
         this.networkInfo = null;
         this.statusListeners = [];
         this.reconnectInterval = null;
+        this.browserpodServer = null; // BrowserPod Headscale server instance
+        
+        // Try to start BrowserPod server automatically
+        this.initBrowserPodServer();
+    }
+
+    async initBrowserPodServer() {
+        // If no server URL is configured, try to start BrowserPod server
+        if (!this.serverUrl && typeof BrowserPodHeadscale !== 'undefined') {
+            try {
+                this.browserpodServer = new BrowserPodHeadscale();
+                const result = await this.browserpodServer.start();
+                if (result.success) {
+                    this.serverUrl = result.url;
+                    localStorage.setItem('wind0_headscale_url', this.serverUrl);
+                    console.log('BrowserPod Headscale server started:', this.serverUrl);
+                }
+            } catch (error) {
+                console.warn('Failed to start BrowserPod Headscale server:', error);
+            }
+        }
     }
 
     // Set Headscale server URL and API key
