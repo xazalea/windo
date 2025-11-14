@@ -589,17 +589,30 @@ class WindowsEmulator {
             this.config.screen_container = this.container;
             this.config.autostart = true;
             
-            // BIOS files with CORS-friendly sources
-            if (!this.config.bios || !this.config.bios.url) {
-                this.config.bios = {
-                    url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/seabios.bin"
-                };
+            // BIOS files with CORS-friendly sources - ensure they're always set
+            if (!this.config.bios) {
+                this.config.bios = {};
             }
-            if (!this.config.vga_bios || !this.config.vga_bios.url) {
-                this.config.vga_bios = {
-                    url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/vgabios.bin"
-                };
+            if (!this.config.bios.url) {
+                this.config.bios.url = "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/seabios.bin";
             }
+            if (!this.config.vga_bios) {
+                this.config.vga_bios = {};
+            }
+            if (!this.config.vga_bios.url) {
+                this.config.vga_bios.url = "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/vgabios.bin";
+            }
+            
+            // Ensure WASM path is set
+            if (!this.config.wasm_path) {
+                this.config.wasm_path = "https://unpkg.com/v86@latest/build/v86.wasm";
+            }
+            
+            console.log('BIOS/WASM config:', {
+                bios: this.config.bios.url,
+                vga_bios: this.config.vga_bios.url,
+                wasm_path: this.config.wasm_path
+            });
             
             // Ensure canvas is ready
             if (!this.canvas) {
