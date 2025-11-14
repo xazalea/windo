@@ -489,6 +489,16 @@
                             if (errorMsg) errorMsg.textContent = 'Failed to initialize emulator. Please refresh.';
                             if (errorOverlay) errorOverlay.style.display = 'flex';
                         }
+                        
+                        // Hide loading overlay after a short delay if dynamic island is available
+                        setTimeout(() => {
+                            if (window.dynamicIslandInstance || (window.emulator && window.emulator.dynamicIsland)) {
+                                const loadingOverlay = document.getElementById('loadingOverlay');
+                                if (loadingOverlay) {
+                                    loadingOverlay.style.display = 'none';
+                                }
+                            }
+                        }, 1500);
                     }, 100);
                 };
                 

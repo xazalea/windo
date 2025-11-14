@@ -190,6 +190,15 @@ class DynamicIsland {
         document.body.appendChild(this.container);
         this.initAI();
         this.positionTopCenter();
+        
+        // Force visibility immediately
+        setTimeout(() => {
+            this.positionTopCenter();
+            this.container.style.display = 'flex';
+            this.container.style.opacity = '1';
+            this.container.style.visibility = 'visible';
+        }, 100);
+        
         this.startAutoHide();
         
         // Setup error monitoring
@@ -245,10 +254,12 @@ class DynamicIsland {
             if (event.error) {
                 self.setStatusColor('error');
                 const statusEl = document.getElementById('island-status');
+                // Declare errorMsg outside the if block so it's accessible in setTimeout
+                const errorMsg = event.error.message ? 
+                    (event.error.message.length > 40 ? event.error.message.substring(0, 37) + '...' : event.error.message) :
+                    'Error occurred';
+                
                 if (statusEl) {
-                    const errorMsg = event.error.message ? 
-                        (event.error.message.length > 40 ? event.error.message.substring(0, 37) + '...' : event.error.message) :
-                        'Error occurred';
                     statusEl.textContent = errorMsg;
                     self.statusText = errorMsg;
                 }
@@ -716,6 +727,7 @@ class DynamicIsland {
     enterBootMode() {
         if (!this.windowsReady) {
             this.state = 'boot-mode';
+            this.isExpanded = true;
             this.container.classList.add('boot-mode');
             const bootPanel = document.getElementById('island-boot-panel');
             if (bootPanel) {
@@ -724,6 +736,12 @@ class DynamicIsland {
             this.container.style.width = 'auto';
             this.container.style.minWidth = '400px';
             this.container.style.maxWidth = '600px';
+            this.container.style.height = 'auto';
+            this.container.style.maxHeight = '70vh';
+            // Ensure visibility
+            this.container.style.display = 'flex';
+            this.container.style.opacity = '1';
+            this.container.style.visibility = 'visible';
         }
     }
 
@@ -825,8 +843,12 @@ class DynamicIsland {
         this.container.style.opacity = '1';
         this.container.style.visibility = 'visible';
         this.container.style.pointerEvents = 'auto';
-        // Ensure it's above loading overlay
+        // Ensure it's above loading overlay (9998) and all other elements
         this.container.style.zIndex = '10001';
+        // Force visibility
+        if (this.container) {
+            this.container.classList.remove('hidden');
+        }
     }
 
     expand() {
@@ -1058,7 +1080,7 @@ class DynamicIsland {
             setTimeout(() => {
                 if (this.statusText === text && !this.isExpanded && statusType !== 'error') {
                     this.collapse();
-                    this.setHideTimeout();
+                    this.startAutoHide();
                 }
             }, duration);
         }
@@ -1462,6 +1484,11 @@ class DynamicIsland {
             this.container.classList.toggle('hidden', !this.isVisible);
             if (this.isVisible) {
                 this.container.style.opacity = '1';
+                this.container.style.visibility = 'visible';
+                this.container.style.display = 'flex';
+            } else {
+                this.container.style.opacity = '0';
+                this.container.style.visibility = 'hidden';
             }
         }
     }

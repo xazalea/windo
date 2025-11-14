@@ -31,6 +31,12 @@ class WindowsEmulator {
             if (typeof window !== 'undefined') {
                 window.dynamicIslandInstance = this.dynamicIsland;
             }
+            // Hide old loading overlay immediately when dynamic island is ready
+            setTimeout(() => {
+                if (this.loadingOverlay) {
+                    this.loadingOverlay.style.display = 'none';
+                }
+            }, 500);
         }
         
         // Initialize API client for enhanced capabilities
@@ -885,11 +891,16 @@ class WindowsEmulator {
                 }
             });
 
-            // Mark boot as complete after a delay and hide loading overlay
+            // Hide loading overlay when emulator is ready (dynamic island handles status)
+            // Small delay to ensure dynamic island is visible first
+            setTimeout(() => {
+                this.hideLoading();
+            }, 1000);
+            
+            // Mark boot as complete after a delay
             setTimeout(() => {
                 this.bootComplete = true;
                 this.updateProgress(100, 'Windows boot complete');
-                this.hideLoading(); // Hide the old loading overlay
                 if (this.dynamicIsland) {
                     this.dynamicIsland.updateStatus('Windows ready', 3000);
                     this.dynamicIsland.updateProgress(100);
@@ -1027,8 +1038,13 @@ class WindowsEmulator {
         if (!this.emulator) return;
 
         if (confirm('Are you sure you want to restart Windows? All unsaved work will be lost.')) {
-            this.updateStatus('loading', 'Restarting...');
-            this.showLoading();
+            this.updateStatus('loading', 'Restarting Windows...', 'loading');
+            // Don't show old loading overlay - dynamic island handles it
+            if (this.dynamicIsland) {
+                this.dynamicIsland.setWindowsReady(false);
+                this.dynamicIsland.enterBootMode();
+                this.dynamicIsland.updateStatus('Restarting Windows...', 0, 'loading');
+            }
             
             // Restart emulator
             try {
