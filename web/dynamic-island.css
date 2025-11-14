@@ -1,42 +1,70 @@
-/* Dynamic Island Styles */
+/* Advanced Dynamic Island - Replaces Toolbar */
 .dynamic-island {
     position: fixed;
     top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 8px 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 30px;
+    padding: 10px 20px;
     min-width: 120px;
-    max-width: 300px;
+    max-width: 600px;
     z-index: 10000;
     display: flex;
     align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 12px;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-size: 13px;
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    user-select: none;
+    overflow: hidden;
+}
+
+/* Compact state (default) */
+.dynamic-island {
+    width: auto;
+    height: 44px;
+}
+
+/* Expanded state */
+.dynamic-island.expanded {
+    width: auto;
+    min-width: 300px;
+    padding: 12px 24px;
+    border-radius: 25px;
 }
 
 .dynamic-island.hidden {
     opacity: 0;
-    transform: translateY(-10px) scale(0.9);
+    transform: translateX(-50%) translateY(-20px) scale(0.8);
     pointer-events: none;
 }
 
 .dynamic-island.pulse {
-    animation: pulse 0.3s ease-in-out;
+    animation: island-pulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes pulse {
+@keyframes island-pulse {
     0%, 100% {
-        transform: scale(1);
+        transform: translateX(-50%) scale(1);
     }
     50% {
-        transform: scale(1.05);
+        transform: translateX(-50%) scale(1.08);
     }
+}
+
+/* Main content area */
+.island-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
 }
 
 .island-status {
@@ -44,42 +72,147 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    transition: opacity 0.2s ease;
+    opacity: 1;
 }
 
+/* AI Indicator */
 .ai-indicator {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.3);
     transition: all 0.3s ease;
     flex-shrink: 0;
+    position: relative;
 }
 
 .ai-indicator.active {
     background: #4ade80;
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.8);
     animation: ai-pulse 2s ease-in-out infinite;
+}
+
+.ai-indicator.active::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: ai-ripple 2s ease-out infinite;
 }
 
 @keyframes ai-pulse {
     0%, 100% {
         opacity: 1;
+        transform: scale(1);
     }
     50% {
-        opacity: 0.5;
+        opacity: 0.7;
+        transform: scale(1.1);
     }
+}
+
+@keyframes ai-ripple {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* Controls (hidden by default, shown when expanded) */
+.island-controls {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    animation: fade-in 0.3s ease;
+}
+
+.dynamic-island.expanded .island-controls {
+    display: flex;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.island-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 16px;
+    color: #fff;
+    backdrop-filter: blur(10px);
+}
+
+.island-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.island-btn:active {
+    transform: scale(0.95);
+}
+
+/* Fluid morphing animation */
+.dynamic-island {
+    will-change: width, height, padding, border-radius;
+}
+
+/* Status text animations */
+.island-status {
+    will-change: opacity, transform;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .dynamic-island {
         top: 10px;
-        right: 10px;
-        font-size: 11px;
-        padding: 6px 12px;
+        font-size: 12px;
+        padding: 8px 16px;
         min-width: 100px;
-        max-width: 200px;
+        height: 40px;
+    }
+    
+    .dynamic-island.expanded {
+        min-width: 250px;
+        padding: 10px 20px;
+    }
+    
+    .island-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
     }
 }
 
+/* Smooth transitions for all state changes */
+.dynamic-island * {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}

@@ -22,10 +22,11 @@ class WindowsEmulator {
         this.performanceOptimizer = new PerformanceOptimizer();
         this.bootComplete = false;
         
-        // Dynamic Island
+        // Dynamic Island (replaces toolbar)
         this.dynamicIsland = null;
         if (typeof DynamicIsland !== 'undefined') {
             this.dynamicIsland = new DynamicIsland();
+            this.dynamicIsland.setEmulator(this);
         }
         
         // Initialize API client for enhanced capabilities
