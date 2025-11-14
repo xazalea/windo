@@ -6,13 +6,13 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "functions": {
-    "web/api/v86-proxy.js": {
+    "api/v86-proxy.js": {
       "maxDuration": 30
     },
-    "web/api/windows-iso-proxy.js": {
+    "api/windows-iso-proxy.js": {
       "maxDuration": 300
     },
-    "web/api/fileio-proxy.js": {
+    "api/fileio-proxy.js": {
       "maxDuration": 60
     }
   },

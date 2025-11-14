@@ -2,6 +2,7 @@
   "name": "windows-vm-web-portal",
   "version": "1.0.0",
   "description": "Web management portal for Windows VM deployment",
+  "type": "module",
   "scripts": {
     "dev": "npx serve .",
     "build": "echo 'Static site - no build needed'"

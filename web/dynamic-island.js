@@ -209,35 +209,46 @@ class DynamicIsland {
     }
     
     setupErrorMonitoring() {
-        // Monitor console errors
+        // Monitor console errors - only show critical errors, not expected fallbacks
         const originalError = console.error;
         const self = this;
+        
+        // List of expected/ignored error patterns
+        const ignoredPatterns = [
+            'ERR_CONNECTION_REFUSED', // Expected when backend isn't running
+            'CORS policy', // Expected when proxy isn't available
+            'File.IO proxy not available', // Expected fallback
+            'Azalea server not available', // Expected fallback
+            'localStorage only', // Expected fallback message
+        ];
         
         console.error = function(...args) {
             originalError.apply(console, args);
             
-            // Check if it's a relevant error (not just warnings)
+            // Check if it's a relevant error (not just warnings or expected fallbacks)
             const errorMsg = args.join(' ');
-            if (errorMsg.includes('Failed to load') || 
+            const isIgnored = ignoredPatterns.some(pattern => errorMsg.includes(pattern));
+            
+            if (!isIgnored && (
+                errorMsg.includes('Failed to load') || 
                 errorMsg.includes('404') || 
-                errorMsg.includes('CORS') ||
                 errorMsg.includes('boot') ||
                 errorMsg.includes('disk') ||
                 errorMsg.includes('error') ||
-                errorMsg.includes('Error')) {
-                
-                // Update island with error state
+                errorMsg.includes('Error')
+            )) {
+                // Only show critical errors, and only briefly
                 self.setStatusColor('error');
                 const statusEl = document.getElementById('island-status');
                 if (statusEl) {
-                    const shortMsg = errorMsg.length > 40 ? errorMsg.substring(0, 37) + '...' : errorMsg;
+                    const shortMsg = errorMsg.length > 30 ? errorMsg.substring(0, 27) + '...' : errorMsg;
                     statusEl.textContent = shortMsg;
                     self.statusText = shortMsg;
                 }
                 
-                // Auto-clear after 5 seconds
+                // Auto-clear after 3 seconds (shorter)
                 setTimeout(() => {
-                    if (self.statusText === errorMsg.substring(0, 40)) {
+                    if (self.statusText === errorMsg.substring(0, 30)) {
                         self.setStatusColor('default');
                         const statusEl = document.getElementById('island-status');
                         if (statusEl) {
@@ -245,27 +256,56 @@ class DynamicIsland {
                             self.statusText = 'wind0';
                         }
                     }
-                }, 5000);
+                }, 3000);
             }
         };
         
-        // Monitor window errors
+        // Monitor window errors - only show critical ones
         window.addEventListener('error', (event) => {
             if (event.error) {
+                const errorMsg = event.error.message || 'Error occurred';
+                const isIgnored = ignoredPatterns.some(pattern => errorMsg.includes(pattern));
+                
+                if (!isIgnored) {
+                    self.setStatusColor('error');
+                    const statusEl = document.getElementById('island-status');
+                    const shortMsg = errorMsg.length > 30 ? errorMsg.substring(0, 27) + '...' : errorMsg;
+                    
+                    if (statusEl) {
+                        statusEl.textContent = shortMsg;
+                        self.statusText = shortMsg;
+                    }
+                    
+                    setTimeout(() => {
+                        if (self.statusText === shortMsg) {
+                            self.setStatusColor('default');
+                            const statusEl = document.getElementById('island-status');
+                            if (statusEl) {
+                                statusEl.textContent = 'wind0';
+                                self.statusText = 'wind0';
+                            }
+                        }
+                    }, 3000);
+                }
+            }
+        });
+        
+        // Monitor unhandled promise rejections - only show critical ones
+        window.addEventListener('unhandledrejection', (event) => {
+            const errorMsg = event.reason?.message || event.reason || 'Promise rejected';
+            const isIgnored = ignoredPatterns.some(pattern => errorMsg.includes(pattern));
+            
+            if (!isIgnored) {
                 self.setStatusColor('error');
                 const statusEl = document.getElementById('island-status');
-                // Declare errorMsg outside the if block so it's accessible in setTimeout
-                const errorMsg = event.error.message ? 
-                    (event.error.message.length > 40 ? event.error.message.substring(0, 37) + '...' : event.error.message) :
-                    'Error occurred';
-                
                 if (statusEl) {
-                    statusEl.textContent = errorMsg;
-                    self.statusText = errorMsg;
+                    const shortMsg = errorMsg.length > 30 ? errorMsg.substring(0, 27) + '...' : errorMsg;
+                    statusEl.textContent = shortMsg;
+                    self.statusText = shortMsg;
                 }
                 
                 setTimeout(() => {
-                    if (self.statusText === errorMsg) {
+                    if (self.statusText === shortMsg) {
                         self.setStatusColor('default');
                         const statusEl = document.getElementById('island-status');
                         if (statusEl) {
@@ -273,31 +313,8 @@ class DynamicIsland {
                             self.statusText = 'wind0';
                         }
                     }
-                }, 5000);
+                }, 3000);
             }
-        });
-        
-        // Monitor unhandled promise rejections
-        window.addEventListener('unhandledrejection', (event) => {
-            self.setStatusColor('error');
-            const statusEl = document.getElementById('island-status');
-            if (statusEl) {
-                const errorMsg = event.reason?.message || event.reason || 'Promise rejected';
-                const shortMsg = errorMsg.length > 40 ? errorMsg.substring(0, 37) + '...' : errorMsg;
-                statusEl.textContent = shortMsg;
-                self.statusText = shortMsg;
-            }
-            
-            setTimeout(() => {
-                if (self.statusText === shortMsg) {
-                    self.setStatusColor('default');
-                    const statusEl = document.getElementById('island-status');
-                    if (statusEl) {
-                        statusEl.textContent = 'wind0';
-                        self.statusText = 'wind0';
-                    }
-                }
-            }, 5000);
         });
     }
 

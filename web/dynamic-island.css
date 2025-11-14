@@ -1,13 +1,12 @@
-/* Advanced Dynamic Island - Clean, Perfect, Non-Intrusive */
+/* Advanced Dynamic Island - Clean, Perfect, Non-Intrusive - Matte Design */
 .dynamic-island {
     position: fixed;
     top: 16px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-radius: 28px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
     padding: 8px 16px;
     min-width: 100px;
     max-width: 500px;
@@ -15,10 +14,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
-                0 0 0 1px rgba(255, 255, 255, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
     font-size: 13px;
     color: #fff;
     cursor: pointer;
@@ -31,45 +28,37 @@
 }
 
 .dynamic-island:hover {
-    transform: translateX(-50%) scale(1.02);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7),
-                0 0 0 1px rgba(255, 255, 255, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateX(-50%) scale(1.01);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border-color: #444;
 }
 
-/* Status Colors */
+/* Status Colors - Matte */
 .dynamic-island.status-default {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: #333;
 }
 
 .dynamic-island.status-loading {
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(59, 130, 246, 0.3),
-                0 0 20px rgba(59, 130, 246, 0.2);
+    border-color: #3b82f6;
+    background: #1a1f2e;
 }
 
 .dynamic-island.status-success {
-    border-color: rgba(74, 222, 128, 0.5);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(74, 222, 128, 0.3),
-                0 0 20px rgba(74, 222, 128, 0.2);
+    border-color: #4ade80;
+    background: #1a2e1f;
 }
 
 .dynamic-island.status-error {
-    border-color: rgba(239, 68, 68, 0.5);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(239, 68, 68, 0.3),
-                0 0 20px rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    background: #2e1a1a;
 }
 
 .dynamic-island.status-warning {
-    border-color: rgba(251, 191, 36, 0.5);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(251, 191, 36, 0.3);
+    border-color: #fbbf24;
+    background: #2e2a1a;
 }
 
-/* Loading Animation - Rotating Blue Ring with glow */
+/* Loading Animation - Simple Rotating Ring */
 .dynamic-island.anim-loading::before {
     content: '';
     position: absolute;
@@ -77,14 +66,13 @@
     left: -2px;
     right: -2px;
     bottom: -2px;
-    border-radius: 30px;
+    border-radius: 10px;
     border: 2px solid transparent;
     border-top-color: #3b82f6;
     border-right-color: #3b82f6;
     animation: rotate-ring 1.5s linear infinite;
     pointer-events: none;
     z-index: -1;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
 }
 
 @keyframes rotate-ring {
@@ -96,49 +84,36 @@
     }
 }
 
-/* Error Animation - Pulsing Red with more intensity */
+/* Error Animation - Subtle pulse */
 .dynamic-island.anim-error {
-    animation: error-pulse 0.8s ease-in-out infinite;
-    transform: scale(1.02);
+    animation: error-pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes error-pulse {
     0%, 100% {
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                    0 0 0 1px rgba(239, 68, 68, 0.5),
-                    0 0 25px rgba(239, 68, 68, 0.3),
-                    0 0 40px rgba(239, 68, 68, 0.1);
-        transform: scale(1);
+        border-color: #ef4444;
+        opacity: 1;
     }
     50% {
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                    0 0 0 2px rgba(239, 68, 68, 0.8),
-                    0 0 35px rgba(239, 68, 68, 0.5),
-                    0 0 60px rgba(239, 68, 68, 0.2);
-        transform: scale(1.03);
+        border-color: #dc2626;
+        opacity: 0.9;
     }
 }
 
-/* Success Animation - Quick Flash */
+/* Success Animation - Subtle flash */
 .dynamic-island.anim-success {
-    animation: success-flash 0.5s ease-out;
+    animation: success-flash 0.4s ease-out;
 }
 
 @keyframes success-flash {
     0% {
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                    0 0 0 1px rgba(74, 222, 128, 0.3),
-                    0 0 20px rgba(74, 222, 128, 0.2);
+        border-color: #4ade80;
     }
     50% {
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                    0 0 0 1px rgba(74, 222, 128, 0.8),
-                    0 0 40px rgba(74, 222, 128, 0.6);
+        border-color: #22c55e;
     }
     100% {
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                    0 0 0 1px rgba(74, 222, 128, 0.3),
-                    0 0 20px rgba(74, 222, 128, 0.2);
+        border-color: #4ade80;
     }
 }
 
@@ -153,9 +128,9 @@
     width: auto;
     min-width: 280px;
     padding: 10px 20px;
-    border-radius: 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
-                0 0 0 1px rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border-color: #444;
 }
 
 .dynamic-island.hidden {
@@ -238,10 +213,9 @@
     left: 0;
     height: 100%;
     width: var(--progress-width, 0%);
-    background: linear-gradient(90deg, #4ade80, #22c55e);
+    background: #4ade80;
     border-radius: 1px;
     transition: width 0.2s ease;
-    box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
 }
 
 .island-progress-text {
@@ -265,22 +239,19 @@
 
 .network-indicator.connected {
     background: #4ade80;
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
 }
 
 .network-indicator.connecting {
     background: #3b82f6;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
     animation: network-pulse 1.5s ease-in-out infinite;
 }
 
 .network-indicator.disconnected {
-    background: rgba(255, 255, 255, 0.25);
+    background: #666;
 }
 
 .network-indicator.error {
     background: #ef4444;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
 
 @keyframes network-pulse {
@@ -307,18 +278,7 @@
 
 .ai-indicator.active {
     background: #4ade80;
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
     animation: ai-pulse 2s ease-in-out infinite;
-}
-
-.ai-indicator.active::before {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: #4ade80;
-    animation: ai-ripple 2s ease-out infinite;
 }
 
 @keyframes ai-pulse {
@@ -332,16 +292,6 @@
     }
 }
 
-@keyframes ai-ripple {
-    0% {
-        transform: scale(1);
-        opacity: 0.7;
-    }
-    100% {
-        transform: scale(2.5);
-        opacity: 0;
-    }
-}
 
 /* Controls (hidden by default, shown when expanded) */
 .island-controls {
@@ -370,8 +320,8 @@
 }
 
 .island-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: none;
+    background: #2a2a2a;
+    border: 1px solid #444;
     border-radius: 6px;
     width: 32px;
     height: 32px;
@@ -379,9 +329,8 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.15s ease;
     color: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
     padding: 0;
     flex-shrink: 0;
 }
@@ -393,10 +342,9 @@
 }
 
 .island-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: scale(1.08);
+    background: #333;
+    border-color: #555;
     color: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .island-btn:active {
