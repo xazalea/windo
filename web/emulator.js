@@ -43,6 +43,18 @@ class WindowsEmulator {
             this.storageManager = new StorageManager();
         }
         
+        // Initialize filesystem bridge for seamless file sync
+        this.filesystemBridge = null;
+        if (typeof FilesystemBridge !== 'undefined' && this.storageManager) {
+            this.filesystemBridge = new FilesystemBridge(this, this.storageManager);
+            // Create virtual drive automatically
+            setTimeout(() => {
+                this.filesystemBridge.createVirtualDrive().catch(err => {
+                    console.warn('Could not create virtual drive:', err);
+                });
+            }, 2000);
+        }
+        
         // Optimize canvas for performance
         this.optimizeCanvas();
         

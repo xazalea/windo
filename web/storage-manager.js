@@ -105,51 +105,72 @@ class StorageManager {
         }
     }
 
-    // Store a file in File.IO
+    // Store a file in File.IO (with automatic retry and progress)
     async storeFile(filePath, fileData, metadata = {}) {
         try {
             const fileName = filePath.split('/').pop() || 'file';
             const fileBlob = fileData instanceof Blob ? fileData : new Blob([fileData]);
             const file = new File([fileBlob], fileName, { type: metadata.mimeType || 'application/octet-stream' });
             
+            // Check if file already exists (update instead of create)
+            const relativePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+            const existingFile = this.storageIndex.files[relativePath];
+            
+            let result;
+            if (existingFile && existingFile.key) {
+                // Update existing file
+                try {
+                    // Delete old file first
+                    await this.fileIO.deleteFile(existingFile.key);
+                } catch (err) {
+                    // Ignore delete errors
+                }
+            }
+            
             // Upload to File.IO
-            const result = await this.fileIO.uploadFile(file, {
+            result = await this.fileIO.uploadFile(file, {
                 autoDelete: false, // Keep files as long as possible
                 maxDownloads: 0 // Unlimited downloads
             });
             
             // Update storage index
-            const relativePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+            const oldSize = existingFile ? existingFile.size : 0;
+            const newSize = result.size || fileBlob.size;
+            
             this.storageIndex.files[relativePath] = {
                 key: result.key,
                 name: fileName,
                 path: relativePath,
-                size: result.size || fileBlob.size,
+                size: newSize,
                 mimeType: result.mimeType || metadata.mimeType,
-                created: result.created || new Date().toISOString(),
+                created: existingFile ? existingFile.created : (result.created || new Date().toISOString()),
                 modified: result.modified || new Date().toISOString(),
                 link: result.link,
                 ...metadata
             };
             
-            this.storageIndex.totalSize += (result.size || fileBlob.size);
-            this.storageIndex.fileCount++;
+            // Update total size
+            this.storageIndex.totalSize = (this.storageIndex.totalSize || 0) - oldSize + newSize;
+            if (!existingFile) {
+                this.storageIndex.fileCount++;
+            }
             
             // Update virtual drive
             this.virtualDrive.set(relativePath, {
                 key: result.key,
                 cached: false,
-                size: result.size || fileBlob.size
+                size: newSize
             });
             
-            // Save index
-            await this.saveStorageIndex();
+            // Save index (async, don't wait)
+            this.saveStorageIndex().catch(err => console.warn('Error saving index:', err));
             
             return {
                 success: true,
                 key: result.key,
                 path: relativePath,
-                size: result.size || fileBlob.size
+                size: newSize,
+                link: result.link
             };
         } catch (error) {
             console.error('Error storing file:', error);

@@ -820,6 +820,30 @@
     background: rgba(239, 68, 68, 0.3);
 }
 
+.file-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.file-share-btn {
+    background: rgba(59, 130, 246, 0.2);
+    border: none;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #3b82f6;
+    transition: all 0.2s;
+}
+
+.file-share-btn:hover {
+    background: rgba(59, 130, 246, 0.3);
+}
+
 /* Storage scrollbar */
 .storage-panel-content::-webkit-scrollbar,
 .storage-files::-webkit-scrollbar {

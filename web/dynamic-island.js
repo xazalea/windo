@@ -270,6 +270,12 @@ class DynamicIsland {
                         </svg>
                         Create Virtual Disk
                     </button>
+                    <button class="storage-action-btn" id="toggle-sync-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9"></path>
+                        </svg>
+                        <span id="sync-status-text">Auto-Sync: ON</span>
+                    </button>
                     <button class="storage-action-btn" id="refresh-storage-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
@@ -327,6 +333,28 @@ class DynamicIsland {
                     this.refreshStorageDisplay();
                 };
             }
+            
+            const toggleSyncBtn = document.getElementById('toggle-sync-btn');
+            const syncStatusText = document.getElementById('sync-status-text');
+            if (toggleSyncBtn && this.emulator && this.emulator.filesystemBridge) {
+                // Update sync status
+                const updateSyncStatus = () => {
+                    const status = this.emulator.filesystemBridge.getSyncStatus();
+                    if (syncStatusText) {
+                        syncStatusText.textContent = `Auto-Sync: ${status.enabled ? 'ON' : 'OFF'}`;
+                    }
+                    toggleSyncBtn.style.opacity = status.enabled ? '1' : '0.6';
+                };
+                
+                updateSyncStatus();
+                
+                toggleSyncBtn.onclick = () => {
+                    const status = this.emulator.filesystemBridge.getSyncStatus();
+                    this.emulator.filesystemBridge.setAutoSync(!status.enabled);
+                    updateSyncStatus();
+                    this.updateStatus(`Auto-sync ${!status.enabled ? 'enabled' : 'disabled'}`, 2000);
+                };
+            }
         }, 100);
     }
 
@@ -339,8 +367,24 @@ class DynamicIsland {
         this.updateStatus(`Uploading ${file.name}...`, 0);
         
         try {
-            const result = await this.emulator.storageManager.storeFile(`/files/${file.name}`, file);
-            this.updateStatus(`Uploaded ${file.name}`, 2000);
+            // Use filesystem bridge for automatic sync
+            const targetPath = `/cloud/Downloads/${file.name}`;
+            const result = await this.emulator.storageManager.storeFile(targetPath, file);
+            
+            // If filesystem bridge exists, trigger auto-install for executables
+            if (this.emulator.filesystemBridge && (file.name.endsWith('.exe') || file.name.endsWith('.msi'))) {
+                this.updateStatus(`Installing ${file.name}...`, 0);
+                try {
+                    await this.emulator.filesystemBridge.installToWindows(targetPath);
+                    this.updateStatus(`Installed ${file.name}`, 3000);
+                } catch (installErr) {
+                    console.warn('Auto-install failed:', installErr);
+                    this.updateStatus(`Uploaded ${file.name}`, 2000);
+                }
+            } else {
+                this.updateStatus(`Uploaded ${file.name}`, 2000);
+            }
+            
             this.refreshStorageDisplay();
         } catch (error) {
             console.error('Upload error:', error);
