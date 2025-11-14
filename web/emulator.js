@@ -592,12 +592,23 @@ class WindowsEmulator {
 
             // Initialize v86 emulator with error handling
             try {
+                // Log the actual URL being used
+                const imageUrl = imageType === 'cdrom' ? this.config.cdrom?.url : this.config.hda?.url;
                 console.log('Initializing v86 emulator with config:', {
                     memory: this.config.memory_size / 1024 / 1024 + 'MB',
                     vga: this.config.vga_memory_size / 1024 / 1024 + 'MB',
                     boot_order: this.config.boot_order.toString(16),
-                    image_type: imageType
+                    image_type: imageType,
+                    image_url: imageUrl
                 });
+                
+                // Ensure we're using the proxy URL, not archive.org directly
+                if (imageType === 'cdrom' && this.config.cdrom && this.config.cdrom.url) {
+                    if (this.config.cdrom.url.includes('archive.org')) {
+                        console.warn('Warning: Using archive.org URL directly, switching to proxy');
+                        this.config.cdrom.url = window.location.origin + '/api/windows-iso-proxy';
+                    }
+                }
                 
                 // Use V86 (not V86Starter) - check which one is available
                 if (typeof V86 !== 'undefined') {
@@ -608,7 +619,7 @@ class WindowsEmulator {
                     throw new Error('Neither V86 nor V86Starter is available. v86.js may not have loaded correctly.');
                 }
                 
-                console.log('v86 emulator initialized successfully');
+                console.log('v86 emulator initialized successfully with URL:', imageUrl);
             } catch (initError) {
                 console.error('v86 initialization error:', initError);
                 throw new Error('Failed to initialize v86 emulator: ' + initError.message);
