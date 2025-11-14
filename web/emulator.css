@@ -611,8 +611,12 @@ body {
 .terms-logo {
     width: 48px;
     height: 48px;
-    object-fit: contain;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     opacity: 0.9;
+    font-size: 48px;
+    line-height: 48px;
 }
 
 .terms-modal-header h1 {

@@ -53,14 +53,7 @@ class DynamicIsland {
         statusEl.className = 'island-status';
         statusEl.id = 'island-status';
         
-        // Add small logo icon before text (optional, subtle)
-        const logoIcon = document.createElement('img');
-        logoIcon.src = 'wind0-logo.png';
-        logoIcon.className = 'island-logo-icon';
-        logoIcon.alt = 'wind0';
-        logoIcon.style.display = 'none'; // Hidden by default, can be enabled if needed
-        
-        statusEl.appendChild(logoIcon);
+        // Logo icon removed - using text only for cleaner look
         const statusText = document.createElement('span');
         statusText.textContent = 'wind0';
         statusEl.appendChild(statusText);

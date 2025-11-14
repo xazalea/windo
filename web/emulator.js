@@ -592,7 +592,7 @@ class WindowsEmulator {
     }
 
     async loadImage(imageUrl, imageType = 'hda') {
-        this.updateStatus('loading', 'Configuring emulator settings...');
+        this.updateStatus('loading', 'Configuring emulator settings...', 'loading');
         this.updateProgress(30, 'Configuring emulator settings...');
 
         try {
