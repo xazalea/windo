@@ -48,11 +48,22 @@ class DynamicIsland {
         const mainContent = document.createElement('div');
         mainContent.className = 'island-main';
         
-        // Status text
+        // Status text with optional logo
         const statusEl = document.createElement('div');
         statusEl.className = 'island-status';
         statusEl.id = 'island-status';
-        statusEl.textContent = 'wind0';
+        
+        // Add small logo icon before text (optional, subtle)
+        const logoIcon = document.createElement('img');
+        logoIcon.src = 'wind0-logo.png';
+        logoIcon.className = 'island-logo-icon';
+        logoIcon.alt = 'wind0';
+        logoIcon.style.display = 'none'; // Hidden by default, can be enabled if needed
+        
+        statusEl.appendChild(logoIcon);
+        const statusText = document.createElement('span');
+        statusText.textContent = 'wind0';
+        statusEl.appendChild(statusText);
         
         // Progress bar container
         const progressContainer = document.createElement('div');

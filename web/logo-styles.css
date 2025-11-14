@@ -1,0 +1,33 @@
+/* Logo Styles - Minimal, tasteful usage */
+
+/* Terms Modal Logo */
+.terms-logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.terms-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    opacity: 0.9;
+}
+
+.terms-modal-header h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+/* Dynamic Island Logo (hidden by default, can be enabled) */
+.island-logo-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+    flex-shrink: 0;
+    display: none; /* Hidden by default to keep it minimal */
+}
+
