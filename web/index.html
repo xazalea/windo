@@ -267,6 +267,91 @@
     <script src="browserpod-integration.js"></script>
     <script src="dynamic-island.js"></script>
     <script>
+        // Terms modal functions - defined first so they're available immediately
+        function showTermsModal() {
+            const modal = document.getElementById('termsModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        function hideTermsModal() {
+            const modal = document.getElementById('termsModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+        
+        function acceptTerms() {
+            const acceptButton = document.getElementById('acceptButton');
+            if (!acceptButton || !acceptButton.classList.contains('enabled')) {
+                return;
+            }
+            
+            // Save acceptance
+            localStorage.setItem('wind0_terms_accepted', 'true');
+            localStorage.setItem('wind0_terms_accepted_date', new Date().toISOString());
+            
+            // Hide modal and continue
+            hideTermsModal();
+            
+            // Continue with initialization
+            if (typeof waitForV86 === 'function') {
+                waitForV86().then(() => {
+                    // Load API client and emulator
+                    const apiScript = document.createElement('script');
+                    apiScript.src = 'api-client.js';
+                    apiScript.async = true;
+                    apiScript.onerror = () => console.log('API client not available, continuing without it');
+                    document.head.appendChild(apiScript);
+                    
+                    const emulatorScript = document.createElement('script');
+                    emulatorScript.src = 'emulator.js';
+                    emulatorScript.async = true;
+                    document.head.appendChild(emulatorScript);
+                    
+                    emulatorScript.onload = () => {
+                        setTimeout(() => {
+                            if (typeof initializeEmulator === 'function') {
+                                initializeEmulator();
+                            } else if (typeof WindowsEmulator !== 'undefined' && (typeof V86 !== 'undefined' || typeof V86Starter !== 'undefined')) {
+                                window.emulator = new WindowsEmulator();
+                            }
+                        }, 100);
+                    };
+                });
+            }
+        }
+        
+        // Terms modal scroll detection
+        document.addEventListener('DOMContentLoaded', () => {
+            const termsContent = document.getElementById('termsContent');
+            const acceptButton = document.getElementById('acceptButton');
+            const scrollIndicator = document.getElementById('scrollIndicator');
+            
+            if (termsContent && acceptButton && scrollIndicator) {
+                function checkScroll() {
+                    const scrollTop = termsContent.scrollTop;
+                    const scrollHeight = termsContent.scrollHeight;
+                    const clientHeight = termsContent.clientHeight;
+                    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+                    
+                    if (scrollPercentage >= 0.99) {
+                        acceptButton.classList.add('enabled');
+                        scrollIndicator.classList.remove('visible');
+                    } else {
+                        acceptButton.classList.remove('enabled');
+                        scrollIndicator.classList.add('visible');
+                    }
+                }
+                
+                termsContent.addEventListener('scroll', checkScroll);
+                checkScroll();
+            }
+        });
+        
         // Load v86.js - use local file first (from git submodule)
         (function() {
             function loadV86() {
