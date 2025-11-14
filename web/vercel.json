@@ -52,10 +52,10 @@
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
         },
-            {
-              "key": "Content-Security-Policy",
-              "value": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://archive.org https://api.llm7.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' ws: wss: https: http: https://api.llm7.io; frame-src 'self' blob:; worker-src 'self' blob:;"
-            }
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://archive.org https://api.llm7.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' ws: wss: https: http: https://api.llm7.io; frame-src 'self' blob:; worker-src 'self' blob:;"
+        }
       ]
     }
   ]
