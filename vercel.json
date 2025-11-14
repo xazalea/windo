@@ -2,6 +2,69 @@
   "buildCommand": "echo 'Static site - no build needed'",
   "outputDirectory": "web",
   "installCommand": "echo 'No dependencies to install'",
-  "framework": null
+  "framework": null,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "functions": {
+    "web/api/v86-proxy.js": {
+      "maxDuration": 30
+    },
+    "web/api/windows-iso-proxy.js": {
+      "maxDuration": 300
+    },
+    "web/api/fileio-proxy.js": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/windows",
+      "destination": "/windows-emulator.html"
+    },
+    {
+      "source": "/rdp",
+      "destination": "/rdp-viewer.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*\\.(js|css|html|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://archive.org https://api.llm7.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' ws: wss: https: http: https://api.llm7.io; frame-src 'self' blob:; worker-src 'self' blob:;"
+        }
+      ]
+    }
+  ]
 }
 

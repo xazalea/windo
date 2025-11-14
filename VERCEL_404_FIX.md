@@ -74,6 +74,19 @@ After deployment, check:
 - Check that `terms.html` exists in `web/` directory
 - Clear browser cache and try again
 
+### Issue: API functions return 404 (`/api/windows-iso-proxy`, `/api/fileio-proxy`)
+
+**Solution**:
+- Verify `web/api/` directory contains the function files:
+  - `web/api/windows-iso-proxy.js`
+  - `web/api/fileio-proxy.js`
+  - `web/api/v86-proxy.js`
+- Check that root `vercel.json` has functions configuration
+- Ensure Root Directory is set to `web` in Vercel Dashboard
+- Redeploy after making changes
+- Check deployment logs for function build errors
+- Test endpoints directly: `https://your-project.vercel.app/api/windows-iso-proxy`
+
 ## Quick Test
 
 Test locally first:
@@ -96,9 +109,13 @@ Visit `http://localhost:3000` - should work perfectly. If it works locally but n
 
 ```
 windows/
-├── vercel.json          ← Root config (points to web/)
+├── vercel.json          ← Root config (points to web/, includes API functions)
 ├── web/
-│   ├── vercel.json      ← Web config (routing)
+│   ├── vercel.json      ← Web config (routing, API functions)
+│   ├── api/             ← Serverless functions directory
+│   │   ├── windows-iso-proxy.js
+│   │   ├── fileio-proxy.js
+│   │   └── v86-proxy.js
 │   ├── index.html       ← Main page
 │   ├── terms.html
 │   ├── windows-emulator.html
@@ -107,5 +124,5 @@ windows/
 │   └── ... (other files)
 ```
 
-Both `vercel.json` files should exist!
+Both `vercel.json` files should exist, and API functions should be in `web/api/`!
 
