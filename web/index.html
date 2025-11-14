@@ -166,10 +166,103 @@
                 </div>
             </div>
         </div>
-    </div>
+        </div>
 
-    <!-- Load scripts in proper order -->
-    <link rel="stylesheet" href="dynamic-island.css">
+        <!-- Terms Modal (matches UI style) -->
+        <div id="termsModal" class="terms-modal">
+            <div class="terms-modal-backdrop"></div>
+            <div class="terms-modal-container">
+                <div class="terms-modal-header">
+                    <h1>wind0</h1>
+                    <p>Windows running on the browser</p>
+                </div>
+                
+                <div class="terms-modal-content" id="termsContent">
+                    <h2>Welcome to wind0</h2>
+                    <p>
+                        Welcome to wind0, Windows running on the browser.
+                    </p>
+
+                    <div class="warning-box">
+                        <strong>⚠️ Performance Warning</strong>
+                        This will make your device laggy, especially on lower end devices. You may not be able to do anything else while Windows is running.
+                    </div>
+
+                    <h2>System Requirements</h2>
+                    <ul>
+                        <li><strong>Memory:</strong> At least 4GB RAM recommended (2GB minimum)</li>
+                        <li><strong>CPU:</strong> Modern multi-core processor recommended</li>
+                        <li><strong>Browser:</strong> Latest version of Chrome, Firefox, Edge, or Safari</li>
+                        <li><strong>Internet:</strong> Stable connection for downloading Windows image (1.1GB)</li>
+                        <li><strong>Storage:</strong> Sufficient browser storage for caching</li>
+                    </ul>
+
+                    <h2>Performance Considerations</h2>
+                    <p>
+                        Running Windows in a browser is computationally intensive. The x86 emulation process requires significant CPU and memory resources. On lower-end devices, you may experience:
+                    </p>
+                    <ul>
+                        <li>Slower system performance</li>
+                        <li>Increased battery consumption</li>
+                        <li>Browser tabs may become unresponsive</li>
+                        <li>Other applications may slow down</li>
+                    </ul>
+
+                    <h2>Recommended Usage</h2>
+                    <ul>
+                        <li>Close unnecessary browser tabs and applications</li>
+                        <li>Use a device with adequate resources</li>
+                        <li>Ensure stable internet connection</li>
+                        <li>Be patient during Windows boot (30-60 seconds)</li>
+                        <li>Consider using a desktop/laptop for best experience</li>
+                    </ul>
+
+                    <h2>Technical Details</h2>
+                    <p>
+                        wind0 uses v86.js, a JavaScript-based x86 emulator, to run Windows 10 Lite Edition directly in your browser. The Windows image is loaded from archive.org and runs entirely client-side. No data is sent to external servers except for the initial image download.
+                    </p>
+
+                    <h2>Limitations</h2>
+                    <ul>
+                        <li>Emulated performance is slower than native Windows</li>
+                        <li>Graphics are limited to VGA mode</li>
+                        <li>Some Windows features may not work correctly</li>
+                        <li>Network access requires WebSocket relay</li>
+                        <li>Disk changes may not persist between sessions</li>
+                    </ul>
+
+                    <h2>Support & Feedback</h2>
+                    <p>
+                        Anyways, have fun with it and report any errors on the Github repo, or any suggestions.
+                    </p>
+                    <p>
+                        We welcome your feedback, bug reports, and feature suggestions. Your input helps us improve wind0 and make Windows in the browser a better experience for everyone.
+                    </p>
+
+                    <h2>Disclaimer</h2>
+                    <p>
+                        wind0 is provided as-is for educational and demonstration purposes. The Windows 10 Lite Edition is used under appropriate licensing. We are not responsible for any system performance issues, data loss, or other consequences of using this software.
+                    </p>
+
+                    <div style="height: 2rem;"></div>
+                </div>
+
+                <div class="terms-modal-footer">
+                    <div class="scroll-indicator" id="scrollIndicator">
+                        Please scroll to the bottom to continue
+                    </div>
+                    <button class="accept-button" id="acceptButton" onclick="acceptTerms()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 6L9 17l-5-5"></path>
+                        </svg>
+                        I Understand and Accept
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Load scripts in proper order -->
+        <link rel="stylesheet" href="dynamic-island.css">
     <script src="libv86.js"></script>
     <script src="performance.js"></script>
     <script src="browserpod-integration.js"></script>
