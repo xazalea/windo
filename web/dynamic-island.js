@@ -106,6 +106,11 @@ class DynamicIsland {
                 title: 'AI Chat' 
             },
             { 
+                icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg>`, 
+                action: 'storage', 
+                title: 'Cloud Storage' 
+            },
+            { 
                 icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>`, 
                 action: 'minimize', 
                 title: 'Minimize' 
@@ -209,6 +214,243 @@ class DynamicIsland {
         `;
         
         this.container.appendChild(bootPanel);
+    }
+
+    createStoragePanel() {
+        const storagePanel = document.createElement('div');
+        storagePanel.className = 'island-storage-panel';
+        storagePanel.id = 'island-storage-panel';
+        storagePanel.style.display = 'none';
+        
+        storagePanel.innerHTML = `
+            <div class="storage-panel-header">
+                <div class="storage-header-left">
+                    <h3>Cloud Storage</h3>
+                    <span class="storage-badge" id="storage-badge">Unlimited</span>
+                </div>
+                <button class="storage-close-btn" onclick="window.dynamicIslandInstance?.exitStorageMode()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="storage-panel-content">
+                <div class="storage-stats" id="storage-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Files:</span>
+                        <span class="stat-value" id="stat-files">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Size:</span>
+                        <span class="stat-value" id="stat-size">0 GB</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Cache:</span>
+                        <span class="stat-value" id="stat-cache">0 MB</span>
+                    </div>
+                </div>
+                <div class="storage-actions">
+                    <button class="storage-action-btn" id="upload-file-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Upload File
+                    </button>
+                    <button class="storage-action-btn" id="create-disk-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        Create Virtual Disk
+                    </button>
+                    <button class="storage-action-btn" id="refresh-storage-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                            <path d="M21 3v5h-5"></path>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                            <path d="M3 21v-5h5"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                <div class="storage-files" id="storage-files">
+                    <div class="storage-empty">No files stored yet</div>
+                </div>
+            </div>
+        `;
+        
+        this.container.appendChild(storagePanel);
+        
+        // Setup event listeners
+        setTimeout(() => {
+            const uploadBtn = document.getElementById('upload-file-btn');
+            const createDiskBtn = document.getElementById('create-disk-btn');
+            const refreshBtn = document.getElementById('refresh-storage-btn');
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.multiple = true;
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            
+            if (uploadBtn) {
+                uploadBtn.onclick = () => {
+                    fileInput.click();
+                };
+            }
+            
+            fileInput.onchange = async (e) => {
+                const files = Array.from(e.target.files);
+                for (const file of files) {
+                    await this.uploadFileToStorage(file);
+                }
+                this.refreshStorageDisplay();
+            };
+            
+            if (createDiskBtn) {
+                createDiskBtn.onclick = async () => {
+                    const sizeMB = prompt('Enter disk size in MB (default: 1000):', '1000');
+                    if (sizeMB) {
+                        await this.createVirtualDisk(parseInt(sizeMB));
+                    }
+                };
+            }
+            
+            if (refreshBtn) {
+                refreshBtn.onclick = () => {
+                    this.refreshStorageDisplay();
+                };
+            }
+        }, 100);
+    }
+
+    async uploadFileToStorage(file) {
+        if (!this.emulator || !this.emulator.storageManager) {
+            alert('Storage manager not available');
+            return;
+        }
+        
+        this.updateStatus(`Uploading ${file.name}...`, 0);
+        
+        try {
+            const result = await this.emulator.storageManager.storeFile(`/files/${file.name}`, file);
+            this.updateStatus(`Uploaded ${file.name}`, 2000);
+            this.refreshStorageDisplay();
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.updateStatus(`Upload failed: ${error.message}`, 3000);
+        }
+    }
+
+    async createVirtualDisk(sizeMB) {
+        if (!this.emulator || !this.emulator.storageManager) {
+            alert('Storage manager not available');
+            return;
+        }
+        
+        this.updateStatus(`Creating ${sizeMB}MB virtual disk...`, 0);
+        
+        try {
+            const disk = await this.emulator.storageManager.createVirtualDisk(sizeMB);
+            this.updateStatus(`Virtual disk created: ${disk.id}`, 3000);
+            this.refreshStorageDisplay();
+        } catch (error) {
+            console.error('Create disk error:', error);
+            this.updateStatus(`Failed to create disk: ${error.message}`, 3000);
+        }
+    }
+
+    refreshStorageDisplay() {
+        if (!this.emulator || !this.emulator.storageManager) return;
+        
+        const stats = this.emulator.storageManager.getStats();
+        const files = this.emulator.storageManager.listFiles();
+        
+        // Update stats
+        const filesEl = document.getElementById('stat-files');
+        const sizeEl = document.getElementById('stat-size');
+        const cacheEl = document.getElementById('stat-cache');
+        
+        if (filesEl) filesEl.textContent = stats.fileCount;
+        if (sizeEl) sizeEl.textContent = (stats.totalSize / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+        if (cacheEl) cacheEl.textContent = (stats.cacheSize / (1024 * 1024)).toFixed(1) + ' MB';
+        
+        // Update files list
+        const filesContainer = document.getElementById('storage-files');
+        if (filesContainer) {
+            if (files.length === 0) {
+                filesContainer.innerHTML = '<div class="storage-empty">No files stored yet</div>';
+            } else {
+                filesContainer.innerHTML = files.map(file => `
+                    <div class="storage-file-item">
+                        <div class="file-info">
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                        <button class="file-delete-btn" onclick="window.dynamicIslandInstance?.deleteStorageFile('${file.path}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `).join('');
+            }
+        }
+    }
+
+    async deleteStorageFile(filePath) {
+        if (!this.emulator || !this.emulator.storageManager) return;
+        
+        if (!confirm(`Delete ${filePath}?`)) return;
+        
+        try {
+            await this.emulator.storageManager.deleteFile(filePath);
+            this.updateStatus('File deleted', 2000);
+            this.refreshStorageDisplay();
+        } catch (error) {
+            console.error('Delete error:', error);
+            this.updateStatus(`Delete failed: ${error.message}`, 3000);
+        }
+    }
+
+    enterStorageMode() {
+        this.state = 'storage-mode';
+        this.isExpanded = true;
+        this.container.classList.add('storage-mode');
+        const storagePanel = document.getElementById('island-storage-panel');
+        if (storagePanel) {
+            storagePanel.style.display = 'block';
+        }
+        this.container.style.width = 'auto';
+        this.container.style.minWidth = '500px';
+        this.container.style.maxWidth = '700px';
+        this.container.style.height = 'auto';
+        this.container.style.maxHeight = '80vh';
+        
+        this.refreshStorageDisplay();
+    }
+
+    exitStorageMode() {
+        this.state = this.windowsReady ? 'compact' : 'boot-mode';
+        this.isExpanded = false;
+        this.container.classList.remove('storage-mode');
+        const storagePanel = document.getElementById('island-storage-panel');
+        if (storagePanel) {
+            storagePanel.style.display = 'none';
+        }
+        this.container.style.width = 'auto';
+        this.container.style.height = '40px';
+        this.container.style.maxHeight = 'none';
+        
+        if (!this.windowsReady) {
+            this.enterBootMode();
+        } else {
+            this.collapse();
+        }
     }
 
     createChatPanel() {
@@ -476,6 +718,9 @@ class DynamicIsland {
                 break;
             case 'chat':
                 this.enterChatMode();
+                break;
+            case 'storage':
+                this.enterStorageMode();
                 break;
             case 'minimize':
                 this.toggle();
