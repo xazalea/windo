@@ -534,8 +534,8 @@ class WindowsEmulator {
     }
 
     async loadImage(imageUrl, imageType = 'hda') {
-        this.updateStatus('loading', 'Initializing emulator...');
-        this.updateProgress(30);
+        this.updateStatus('loading', 'Configuring emulator settings...');
+        this.updateProgress(30, 'Configuring emulator settings...');
 
         try {
             // Configure image based on type
@@ -610,10 +610,10 @@ class WindowsEmulator {
             // Enhanced event listeners with performance optimizations
             this.emulator.add_listener("emulator-ready", () => {
                 console.log('Emulator ready, Windows should start booting...');
-                this.updateProgress(60);
+                this.updateProgress(60, 'Emulator initialized, starting Windows boot...');
                 this.updateStatus('loading', 'Emulator ready, booting Windows...');
                 if (this.dynamicIsland) {
-                    this.dynamicIsland.updateStatus('Booting Windows...', 0);
+                    this.dynamicIsland.updateStatus('Starting Windows boot process...', 0);
                 }
                 // Focus canvas for keyboard input
                 setTimeout(() => {
@@ -621,16 +621,50 @@ class WindowsEmulator {
                 }, 1000);
             });
 
+            // Listen for download progress
+            this.emulator.add_listener("download-progress", (progress) => {
+                if (progress && progress.loaded && progress.total) {
+                    const percent = (progress.loaded / progress.total) * 100;
+                    const statusText = progress.file_name ? `Downloading ${progress.file_name}...` : 'Downloading...';
+                    this.updateProgress(percent, statusText, progress.total, progress.loaded);
+                }
+            });
+
             // Listen for boot progress and optimize
             let bootProgressCounter = 0;
+            let lastBootStatus = '';
+            const bootStages = [
+                { count: 0, status: 'Initializing BIOS...' },
+                { count: 500, status: 'Loading boot sector...' },
+                { count: 1000, status: 'Reading Windows loader...' },
+                { count: 2000, status: 'Loading Windows kernel...' },
+                { count: 3000, status: 'Initializing drivers...' },
+                { count: 5000, status: 'Starting Windows services...' },
+                { count: 8000, status: 'Loading system files...' },
+                { count: 12000, status: 'Preparing desktop...' }
+            ];
+            
             this.emulator.add_listener("screen-put-char", () => {
                 if (this.dynamicIsland && !this.bootComplete) {
                     bootProgressCounter++;
-                    // Update status every 500 chars to avoid spam
-                    if (bootProgressCounter % 500 === 0) {
-                        const statuses = ['Booting...', 'Loading drivers...', 'Starting services...', 'Initializing...'];
-                        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-                        this.dynamicIsland.updateStatus(randomStatus, 2000);
+                    
+                    // Find current boot stage
+                    let currentStage = bootStages[0];
+                    for (let i = bootStages.length - 1; i >= 0; i--) {
+                        if (bootProgressCounter >= bootStages[i].count) {
+                            currentStage = bootStages[i];
+                            break;
+                        }
+                    }
+                    
+                    // Update status if stage changed
+                    if (currentStage.status !== lastBootStatus) {
+                        lastBootStatus = currentStage.status;
+                        const bootPercent = Math.min(95, 20 + (bootProgressCounter / 15000) * 75);
+                        this.updateProgress(bootPercent, currentStage.status);
+                        if (this.dynamicIsland) {
+                            this.dynamicIsland.updateStatus(currentStage.status, 0);
+                        }
                     }
                 }
             });
@@ -638,8 +672,10 @@ class WindowsEmulator {
             // Mark boot as complete after a delay
             setTimeout(() => {
                 this.bootComplete = true;
+                this.updateProgress(100, 'Windows boot complete');
                 if (this.dynamicIsland) {
                     this.dynamicIsland.updateStatus('Windows ready', 3000);
+                    this.dynamicIsland.updateProgress(100);
                 }
             }, 60000); // Assume boot complete after 60 seconds
             
@@ -808,8 +844,14 @@ class WindowsEmulator {
         }
     }
 
-    updateProgress(percent) {
-        this.progressFill.style.width = percent + '%';
+    updateProgress(percent, statusText = null, totalBytes = null, loadedBytes = null) {
+        if (this.progressFill) {
+            this.progressFill.style.width = percent + '%';
+        }
+        // Update dynamic island progress
+        if (this.dynamicIsland) {
+            this.dynamicIsland.updateProgress(percent, statusText, totalBytes, loadedBytes);
+        }
     }
 
     showLoading() {

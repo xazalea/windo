@@ -79,6 +79,53 @@
     opacity: 1;
 }
 
+/* Progress bar */
+.island-progress-container {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    width: 200px;
+    margin: 0 8px;
+}
+
+.island-progress-bar {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.island-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress-width, 0%);
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+    animation: progress-shimmer 2s infinite;
+}
+
+@keyframes progress-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.island-progress-text {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
 /* AI Indicator */
 .ai-indicator {
     width: 8px;
