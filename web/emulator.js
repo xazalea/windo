@@ -695,11 +695,18 @@ class WindowsEmulator {
                 if (v86Config.vga_bios) v86Config.vga_bios = { ...v86Config.vga_bios };
                 if (v86Config.cdrom) v86Config.cdrom = { ...v86Config.cdrom };
                 if (v86Config.hda) v86Config.hda = { ...v86Config.hda };
-                // Ensure screen_container is always a DOM element
+                // Ensure screen_container is always a DOM element (critical for v86.js)
+                // Re-validate container before passing to v86.js
+                if (!this.container || typeof this.container.getElementsByTagName !== 'function') {
+                    this.container = document.getElementById('screen_container');
+                }
+                if (!this.container || typeof this.container.getElementsByTagName !== 'function') {
+                    throw new Error('screen_container must be a valid DOM element. Element not found or invalid.');
+                }
                 v86Config.screen_container = this.container;
                 
                 console.log('Creating V86 with config, CDROM URL:', v86Config.cdrom?.url);
-                console.log('Screen container type:', typeof v86Config.screen_container, v86Config.screen_container?.tagName);
+                console.log('Screen container validated:', v86Config.screen_container.tagName, v86Config.screen_container.id);
                 
                 if (typeof V86 !== 'undefined') {
                     this.emulator = new V86(v86Config);
