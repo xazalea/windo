@@ -135,6 +135,9 @@ class DynamicIsland {
         // Boot mode panel (shown when Windows is not ready)
         this.createBootModePanel();
         
+        // Storage panel
+        this.createStoragePanel();
+        
         // Chat panel
         this.createChatPanel();
         
