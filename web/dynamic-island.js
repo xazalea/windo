@@ -917,11 +917,20 @@ class DynamicIsland {
         return false;
     }
 
-    updateStatus(text, duration = 3000) {
+    updateStatus(text, duration = 3000, statusType = 'default') {
         if (!this.container) return;
         
         clearTimeout(this.autoHideTimeout);
         this.container.style.opacity = '1';
+        
+        // Handle errors with AI paraphrasing
+        if (statusType === 'error') {
+            this.handleError(text);
+            return;
+        }
+        
+        // Set status color and animation
+        this.setStatusColor(statusType);
         
         const statusEl = document.getElementById('island-status');
         if (statusEl) {
@@ -945,6 +954,113 @@ class DynamicIsland {
                 bootStatus.textContent = text;
             }
         }
+        
+        // Auto-hide after duration
+        if (duration > 0 && !text.includes('Booting') && !text.includes('Loading') && !text.includes('Downloading')) {
+            setTimeout(() => {
+                if (this.statusText === text && !this.isExpanded && statusType !== 'error') {
+                    this.collapse();
+                    this.setHideTimeout();
+                }
+            }, duration);
+        }
+    }
+
+    async handleError(errorText) {
+        // Add to error queue
+        this.errorQueue.push(errorText);
+        
+        // Paraphrase error with AI
+        try {
+            const paraphrased = await this.paraphraseError(errorText);
+            this.setStatusColor('error');
+            const statusEl = document.getElementById('island-status');
+            if (statusEl) {
+                statusEl.textContent = paraphrased || errorText;
+                this.statusText = paraphrased || errorText;
+            }
+        } catch (err) {
+            // If AI fails, show original error
+            this.setStatusColor('error');
+            const statusEl = document.getElementById('island-status');
+            if (statusEl) {
+                statusEl.textContent = errorText;
+                this.statusText = errorText;
+            }
+        }
+    }
+
+    async paraphraseError(errorText) {
+        try {
+            const response = await this.queryAI(`Paraphrase this error message in a user-friendly way (max 40 characters): ${errorText}`);
+            if (response) {
+                // Extract just the paraphrased text, remove quotes
+                let paraphrased = response.trim();
+                if (paraphrased.startsWith('"') && paraphrased.endsWith('"')) {
+                    paraphrased = paraphrased.slice(1, -1);
+                }
+                if (paraphrased.startsWith("'") && paraphrased.endsWith("'")) {
+                    paraphrased = paraphrased.slice(1, -1);
+                }
+                return paraphrased.substring(0, 50); // Limit length
+            }
+        } catch (error) {
+            console.warn('Error paraphrasing failed:', error);
+        }
+        return null;
+    }
+
+    setStatusColor(type) {
+        if (!this.container) return;
+        
+        // Remove all status color classes
+        this.container.classList.remove('status-default', 'status-loading', 'status-success', 'status-error', 'status-warning');
+        
+        // Remove animation classes
+        this.container.classList.remove('anim-loading', 'anim-error', 'anim-success');
+        
+        this.statusColor = type;
+        
+        switch (type) {
+            case 'loading':
+                this.container.classList.add('status-loading', 'anim-loading');
+                break;
+            case 'success':
+                this.container.classList.add('status-success', 'anim-success');
+                break;
+            case 'error':
+                this.container.classList.add('status-error', 'anim-error');
+                break;
+            case 'warning':
+                this.container.classList.add('status-warning');
+                break;
+            default:
+                this.container.classList.add('status-default');
+        }
+    }
+
+    updateNetworkStatus(status) {
+        const networkIndicator = document.getElementById('network-indicator');
+        if (!networkIndicator) return;
+        
+        networkIndicator.classList.remove('connected', 'connecting', 'disconnected', 'error');
+        networkIndicator.classList.add(status.status);
+        
+        if (status.connected && status.networkInfo) {
+            networkIndicator.title = `Connected: ${status.networkInfo.ip || 'Online'}`;
+        } else if (status.status === 'connecting') {
+            networkIndicator.title = 'Connecting to network...';
+        } else if (status.status === 'error') {
+            networkIndicator.title = 'Network connection error';
+        } else {
+            networkIndicator.title = 'Network disconnected';
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     updateProgress(percent, statusText = null, totalBytes = null, loadedBytes = null) {
