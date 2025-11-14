@@ -729,6 +729,19 @@ class DynamicIsland {
     setEmulator(emulator) {
         this.emulator = emulator;
     }
+
+    // Update storage status
+    updateStorageStatus() {
+        if (this.emulator && this.emulator.storageManager) {
+            const stats = this.emulator.storageManager.getStats();
+            const totalGB = (stats.totalSize / (1024 * 1024 * 1024)).toFixed(2);
+            const cacheMB = (stats.cacheSize / (1024 * 1024)).toFixed(1);
+            
+            // Update status with storage info
+            const storageText = `${stats.fileCount} files • ${totalGB}GB stored`;
+            this.updateStatus(storageText, 5000);
+        }
+    }
 }
 
 // Export

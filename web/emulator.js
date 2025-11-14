@@ -37,6 +37,12 @@ class WindowsEmulator {
         this.apiClient = null;
         this.initAPIClient();
         
+        // Initialize storage manager for File.IO cloud storage
+        this.storageManager = null;
+        if (typeof StorageManager !== 'undefined') {
+            this.storageManager = new StorageManager();
+        }
+        
         // Optimize canvas for performance
         this.optimizeCanvas();
         
