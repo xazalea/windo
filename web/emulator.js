@@ -515,15 +515,16 @@ class WindowsEmulator {
                 if (cached) return;
             }
 
-            // Fallback: Load Windows 10 Lite Edition from archive.org
-            const windows10LiteUrl = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
+            // Fallback: Load Windows 10 Lite Edition via proxy (avoids CORS)
+            // Use Vercel serverless function to proxy the ISO file
+            const windows10LiteUrl = '/api/windows-iso-proxy';
             this.updateProgress(20);
-            this.updateStatus('loading', 'Downloading Windows 10 Lite (1.1GB)...');
+            this.updateStatus('loading', 'Loading Windows 10 Lite (1.1GB)...');
             if (this.dynamicIsland) {
-                this.dynamicIsland.updateStatus('Downloading image (1.1GB)...', 0);
+                this.dynamicIsland.updateStatus('Loading Windows image...', 0);
             }
             
-            // Load the Windows 10 Lite image
+            // Load the Windows 10 Lite image via proxy
             await this.loadImage(windows10LiteUrl, 'cdrom');
         } catch (error) {
             console.error('Error loading Windows 10 Lite:', error);

@@ -4,6 +4,9 @@
   "functions": {
     "api/v86-proxy.js": {
       "maxDuration": 30
+    },
+    "api/windows-iso-proxy.js": {
+      "maxDuration": 300
     }
   },
   "rewrites": [
