@@ -784,10 +784,11 @@ class WindowsEmulator {
                 }
             });
 
-            // Mark boot as complete after a delay
+            // Mark boot as complete after a delay and hide loading overlay
             setTimeout(() => {
                 this.bootComplete = true;
                 this.updateProgress(100, 'Windows boot complete');
+                this.hideLoading(); // Hide the old loading overlay
                 if (this.dynamicIsland) {
                     this.dynamicIsland.updateStatus('Windows ready', 3000);
                     this.dynamicIsland.updateProgress(100);

@@ -395,6 +395,10 @@ class DynamicIsland {
         this.container.style.right = 'auto';
         this.container.style.display = 'flex';
         this.container.style.opacity = '1';
+        this.container.style.visibility = 'visible';
+        this.container.style.pointerEvents = 'auto';
+        // Ensure it's above loading overlay
+        this.container.style.zIndex = '10001';
     }
 
     expand() {

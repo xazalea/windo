@@ -200,7 +200,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
+    z-index: 9998; /* Below dynamic island (10001) */
 }
 
 .loading-content {
