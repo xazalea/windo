@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azalea - Windows 10 Running on Browser</title>
+    <title>wind0 - Windows 10 Running on Browser</title>
     <link rel="stylesheet" href="emulator.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
                 </div>
             </div>
             <div class="toolbar-center">
-                <h2>Azalea - Windows 10 Lite</h2>
+                <h2>wind0 - Windows 10 Lite</h2>
             </div>
             <div class="toolbar-right">
                 <button class="toolbar-btn" onclick="toggleFullscreen()" title="Fullscreen (F11)">
@@ -239,11 +239,11 @@
                 });
             }
             
-            // Check if terms were accepted
-            if (localStorage.getItem('azalea_terms_accepted') !== 'true') {
-                window.location.href = '/terms.html';
-                return;
-            }
+                // Check if terms were accepted
+                if (localStorage.getItem('wind0_terms_accepted') !== 'true') {
+                    showTermsModal();
+                    return;
+                }
             
             // Wait for v86.js to load (it's loaded via script tag above)
             function waitForV86() {

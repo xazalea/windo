@@ -30,7 +30,7 @@ class DynamicIsland {
         const statusEl = document.createElement('div');
         statusEl.className = 'island-status';
         statusEl.id = 'island-status';
-        statusEl.textContent = 'Azalea';
+        statusEl.textContent = 'wind0';
         
         // Progress bar container
         const progressContainer = document.createElement('div');

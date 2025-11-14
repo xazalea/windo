@@ -96,7 +96,7 @@ class WindowsEmulator {
 
     async initAPIClient() {
         // Try to connect to Node.js backend server
-        const serverUrl = localStorage.getItem('azalea_server_url') || 'http://localhost:3001';
+        const serverUrl = localStorage.getItem('wind0_server_url') || 'http://localhost:3001';
         
         try {
             if (typeof AzaleaAPIClient !== 'undefined') {
