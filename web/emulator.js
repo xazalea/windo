@@ -540,10 +540,23 @@ class WindowsEmulator {
         try {
             // Ensure URL is absolute (for proxy)
             let finalUrl = imageUrl;
-            if (imageUrl.startsWith('/api/')) {
-                // Make it absolute URL for v86.js
-                finalUrl = window.location.origin + imageUrl;
+            if (!finalUrl) {
+                console.error('loadImage called with undefined URL!');
+                throw new Error('Image URL is undefined');
             }
+            
+            if (finalUrl.startsWith('/api/')) {
+                // Make it absolute URL for v86.js
+                finalUrl = window.location.origin + finalUrl;
+            }
+            
+            // Ensure we use the proxy URL, not archive.org
+            if (finalUrl.includes('archive.org') && !finalUrl.includes('/api/')) {
+                console.warn('Replacing archive.org URL with proxy');
+                finalUrl = window.location.origin + '/api/windows-iso-proxy';
+            }
+            
+            console.log('loadImage called with:', { imageUrl, finalUrl, imageType });
             
             // Configure image based on type
             if (imageType === 'hda') {
@@ -554,11 +567,6 @@ class WindowsEmulator {
                 };
                 this.config.boot_order = 0x123; // C, A, CD
             } else if (imageType === 'cdrom') {
-                // Ensure we use the proxy URL, not archive.org
-                if (finalUrl.includes('archive.org') && !finalUrl.includes('/api/')) {
-                    console.warn('Replacing archive.org URL with proxy');
-                    finalUrl = window.location.origin + '/api/windows-iso-proxy';
-                }
                 console.log('Setting CDROM URL to:', finalUrl);
                 this.config.cdrom = {
                     url: finalUrl,
@@ -567,6 +575,12 @@ class WindowsEmulator {
                     size: 1153433600
                 };
                 this.config.boot_order = 0x213; // CD, C, A (boot from CD first)
+                
+                // Verify it was set correctly
+                if (!this.config.cdrom.url) {
+                    throw new Error('Failed to set CDROM URL');
+                }
+                console.log('CDROM config verified:', this.config.cdrom);
             }
 
             // Optimized configuration for Windows 10 performance
@@ -611,23 +625,39 @@ class WindowsEmulator {
                 });
                 
                 // Ensure we're using the proxy URL, not archive.org directly
-                if (imageType === 'cdrom' && this.config.cdrom && this.config.cdrom.url) {
-                    if (this.config.cdrom.url.includes('archive.org')) {
+                if (imageType === 'cdrom' && this.config.cdrom) {
+                    // Double-check the URL is set and valid
+                    if (!this.config.cdrom.url) {
+                        console.error('CDROM URL is undefined! Setting to proxy...');
+                        this.config.cdrom.url = window.location.origin + '/api/windows-iso-proxy';
+                    } else if (this.config.cdrom.url.includes('archive.org') && !this.config.cdrom.url.includes('/api/')) {
                         console.warn('Warning: Using archive.org URL directly, switching to proxy');
                         this.config.cdrom.url = window.location.origin + '/api/windows-iso-proxy';
                     }
+                    // Ensure async is true for Range request support
+                    this.config.cdrom.async = true;
+                    console.log('Final CDROM config:', {
+                        url: this.config.cdrom.url,
+                        async: this.config.cdrom.async,
+                        size: this.config.cdrom.size
+                    });
                 }
                 
                 // Use V86 (not V86Starter) - check which one is available
                 if (typeof V86 !== 'undefined') {
-                    this.emulator = new V86(this.config);
+                    // Create a copy of config to ensure it's not modified
+                    const v86Config = JSON.parse(JSON.stringify(this.config));
+                    console.log('Creating V86 with config, CDROM URL:', v86Config.cdrom?.url);
+                    this.emulator = new V86(v86Config);
                 } else if (typeof V86Starter !== 'undefined') {
-                    this.emulator = new V86Starter(this.config);
+                    const v86Config = JSON.parse(JSON.stringify(this.config));
+                    console.log('Creating V86Starter with config, CDROM URL:', v86Config.cdrom?.url);
+                    this.emulator = new V86Starter(v86Config);
                 } else {
                     throw new Error('Neither V86 nor V86Starter is available. v86.js may not have loaded correctly.');
                 }
                 
-                console.log('v86 emulator initialized successfully with URL:', imageUrl);
+                console.log('v86 emulator initialized successfully with URL:', this.config.cdrom?.url || this.config.hda?.url);
             } catch (initError) {
                 console.error('v86 initialization error:', initError);
                 throw new Error('Failed to initialize v86 emulator: ' + initError.message);
