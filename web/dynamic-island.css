@@ -24,8 +24,107 @@
     user-select: none;
     overflow: hidden;
     pointer-events: auto;
-    /* Ensure it doesn't block canvas clicks when not hovered */
     opacity: 1;
+    position: relative;
+}
+
+/* Status Colors */
+.dynamic-island.status-default {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dynamic-island.status-loading {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(59, 130, 246, 0.3),
+                0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.dynamic-island.status-success {
+    border-color: rgba(74, 222, 128, 0.5);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(74, 222, 128, 0.3),
+                0 0 20px rgba(74, 222, 128, 0.2);
+}
+
+.dynamic-island.status-error {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(239, 68, 68, 0.3),
+                0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+.dynamic-island.status-warning {
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(251, 191, 36, 0.3);
+}
+
+/* Loading Animation - Rotating Blue Ring */
+.dynamic-island.anim-loading::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 30px;
+    border: 2px solid transparent;
+    border-top-color: #3b82f6;
+    border-right-color: #3b82f6;
+    animation: rotate-ring 2s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes rotate-ring {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Error Animation - Pulsing Red */
+.dynamic-island.anim-error {
+    animation: error-pulse 1s ease-in-out infinite;
+}
+
+@keyframes error-pulse {
+    0%, 100% {
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(239, 68, 68, 0.3),
+                    0 0 20px rgba(239, 68, 68, 0.2);
+    }
+    50% {
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(239, 68, 68, 0.6),
+                    0 0 30px rgba(239, 68, 68, 0.4);
+    }
+}
+
+/* Success Animation - Quick Flash */
+.dynamic-island.anim-success {
+    animation: success-flash 0.5s ease-out;
+}
+
+@keyframes success-flash {
+    0% {
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(74, 222, 128, 0.3),
+                    0 0 20px rgba(74, 222, 128, 0.2);
+    }
+    50% {
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(74, 222, 128, 0.8),
+                    0 0 40px rgba(74, 222, 128, 0.6);
+    }
+    100% {
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(74, 222, 128, 0.3),
+                    0 0 20px rgba(74, 222, 128, 0.2);
+    }
 }
 
 /* Compact state (default) */
@@ -125,6 +224,48 @@
     font-weight: 500;
     white-space: nowrap;
     letter-spacing: 0.02em;
+}
+
+/* Network Indicator */
+.network-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.network-indicator.connected {
+    background: #4ade80;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+}
+
+.network-indicator.connecting {
+    background: #3b82f6;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+    animation: network-pulse 1.5s ease-in-out infinite;
+}
+
+.network-indicator.disconnected {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.network-indicator.error {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+@keyframes network-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
 }
 
 /* AI Indicator */

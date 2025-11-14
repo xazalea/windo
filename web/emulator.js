@@ -55,6 +55,18 @@ class WindowsEmulator {
             }, 2000);
         }
         
+        // Initialize Headscale client for network connectivity
+        this.headscaleClient = null;
+        if (typeof HeadscaleClient !== 'undefined') {
+            this.headscaleClient = new HeadscaleClient();
+            // Listen for network status changes
+            this.headscaleClient.onStatusChange((status) => {
+                if (this.dynamicIsland) {
+                    this.dynamicIsland.updateNetworkStatus(status);
+                }
+            });
+        }
+        
         // Optimize canvas for performance
         this.optimizeCanvas();
         
@@ -768,7 +780,11 @@ class WindowsEmulator {
                 console.log('v86 emulator initialized successfully with URL:', this.config.cdrom?.url || this.config.hda?.url);
             } catch (initError) {
                 console.error('v86 initialization error:', initError);
-                throw new Error('Failed to initialize v86 emulator: ' + initError.message);
+                const errorMsg = 'Failed to initialize v86 emulator: ' + initError.message;
+                if (this.dynamicIsland) {
+                    this.dynamicIsland.updateStatus(errorMsg, 5000, 'error');
+                }
+                throw new Error(errorMsg);
             }
 
             // Enhanced event listeners with performance optimizations

@@ -16,6 +16,9 @@ class DynamicIsland {
         this.autoHideTimeout = null;
         this.windowsReady = false;
         this.selectedModel = localStorage.getItem('wind0_ai_model') || 'gpt-4.1-2025-04-14';
+        this.statusColor = 'default'; // 'default', 'loading', 'success', 'error', 'warning'
+        this.statusAnimation = null;
+        this.errorQueue = [];
         this.availableModels = [
             {id: "gpt-4.1-nano-2025-04-14", name: "GPT-4.1 Nano", context: "5K chars"},
             {id: "gpt-4.1-2025-04-14", name: "GPT-4.1", context: "10K chars"},
@@ -74,8 +77,15 @@ class DynamicIsland {
         aiIndicator.id = 'ai-indicator';
         aiIndicator.title = 'AI Assistant Active';
         
+        // Network indicator
+        const networkIndicator = document.createElement('div');
+        networkIndicator.className = 'network-indicator';
+        networkIndicator.id = 'network-indicator';
+        networkIndicator.title = 'Network Status';
+        
         mainContent.appendChild(statusEl);
         mainContent.appendChild(progressContainer);
+        mainContent.appendChild(networkIndicator);
         mainContent.appendChild(aiIndicator);
         
         // Expanded controls
@@ -137,6 +147,9 @@ class DynamicIsland {
         
         // Storage panel
         this.createStoragePanel();
+        
+        // Network panel
+        this.createNetworkPanel();
         
         // Chat panel
         this.createChatPanel();
@@ -796,6 +809,9 @@ class DynamicIsland {
                 break;
             case 'storage':
                 this.enterStorageMode();
+                break;
+            case 'network':
+                this.enterNetworkMode();
                 break;
             case 'minimize':
                 this.toggle();
