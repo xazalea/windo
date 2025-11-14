@@ -580,8 +580,8 @@ class WindowsEmulator {
             // Network configuration (optional, can be disabled)
             this.config.network_relay_url = "wss://relay.widgetry.org/";
 
-            this.updateProgress(50);
-            this.updateStatus('loading', 'Starting Windows 10 emulator...');
+            this.updateProgress(50, 'Initializing x86 emulator core...');
+            this.updateStatus('loading', 'Initializing x86 emulator core...');
 
             // Initialize v86 emulator with error handling
             try {
