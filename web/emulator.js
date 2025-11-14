@@ -45,10 +45,12 @@ class WindowsEmulator {
             screen_container: this.container,
             wasm_path: "https://unpkg.com/v86@latest/build/v86.wasm",
             bios: {
-                url: "https://unpkg.com/v86@latest/build/seabios.bin"
+                // Use jsdelivr which supports CORS, fallback to local files
+                url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/seabios.bin"
             },
             vga_bios: {
-                url: "https://unpkg.com/v86@latest/build/vgabios.bin"
+                // Use jsdelivr which supports CORS, fallback to local files
+                url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/vgabios.bin"
             },
             cdrom: {
                 url: null,
@@ -556,6 +558,18 @@ class WindowsEmulator {
             this.config.vga_memory_size = 32 * 1024 * 1024; // 32MB VGA (better graphics)
             this.config.screen_container = this.container;
             this.config.autostart = true;
+            
+            // BIOS files with CORS-friendly sources
+            if (!this.config.bios || !this.config.bios.url) {
+                this.config.bios = {
+                    url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/seabios.bin"
+                };
+            }
+            if (!this.config.vga_bios || !this.config.vga_bios.url) {
+                this.config.vga_bios = {
+                    url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/vgabios.bin"
+                };
+            }
             
             // Ensure canvas is ready
             if (!this.canvas) {
