@@ -791,15 +791,51 @@ class WindowsEmulator {
             this.emulator.add_listener("emulator-ready", () => {
                 console.log('Emulator ready, Windows should start booting...');
                 this.updateProgress(60, 'Emulator initialized, starting Windows boot...');
-                this.updateStatus('loading', 'Emulator ready, booting Windows...');
+                this.updateStatus('loading', 'Emulator ready, booting Windows...', 'loading');
                 if (this.dynamicIsland) {
-                    this.dynamicIsland.updateStatus('Starting Windows boot process...', 0);
+                    this.dynamicIsland.updateStatus('Starting Windows boot process...', 0, 'loading');
                 }
                 // Focus canvas for keyboard input
                 setTimeout(() => {
                     this.canvas.focus();
                 }, 1000);
             });
+            
+            // Listen for boot errors
+            this.emulator.add_listener("emulator-error", (error) => {
+                console.error('Emulator error:', error);
+                if (this.dynamicIsland) {
+                    const errorMsg = error.message || error.toString();
+                    this.dynamicIsland.updateStatus(`Boot error: ${errorMsg.substring(0, 30)}`, 10000, 'error');
+                }
+            });
+            
+            // Monitor for boot failures - check if screen is stuck
+            setTimeout(() => {
+                if (!this.bootComplete && this.emulator) {
+                    // Check if screen is still black/empty after 15 seconds
+                    const canvas = document.getElementById('screen');
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        const imageData = ctx.getImageData(0, 0, Math.min(100, canvas.width), Math.min(100, canvas.height));
+                        const pixels = imageData.data;
+                        let allBlack = true;
+                        for (let i = 0; i < pixels.length; i += 4) {
+                            if (pixels[i] !== 0 || pixels[i + 1] !== 0 || pixels[i + 2] !== 0) {
+                                allBlack = false;
+                                break;
+                            }
+                        }
+                        
+                        if (allBlack && !this.bootComplete) {
+                            console.warn('Screen appears to be stuck on black screen - possible boot failure');
+                            if (this.dynamicIsland) {
+                                this.dynamicIsland.updateStatus('Boot may have failed - checking...', 5000, 'warning');
+                            }
+                        }
+                    }
+                }
+            }, 15000);
 
             // Listen for download progress
             this.emulator.add_listener("download-progress", (progress) => {
