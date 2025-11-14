@@ -43,6 +43,20 @@ class WindowsEmulator {
         // Start performance monitoring
         this.performanceOptimizer.startMonitoring();
         
+        // Ensure container is a DOM element
+        if (!this.container || typeof this.container === 'string') {
+            this.container = document.getElementById('screen_container');
+        }
+        if (!this.container) {
+            console.error('Screen container not found, will retry...');
+            setTimeout(() => {
+                this.container = document.getElementById('screen_container');
+                if (this.container) {
+                    this.config.screen_container = this.container;
+                }
+            }, 100);
+        }
+        
         this.config = {
             memory_size: 1536 * 1024 * 1024, // 1.5GB RAM (optimal for Windows 10)
             vga_memory_size: 32 * 1024 * 1024, // 32MB VGA memory (better graphics)
@@ -590,6 +604,14 @@ class WindowsEmulator {
             // Optimized configuration for Windows 10 performance
             this.config.memory_size = 1536 * 1024 * 1024; // 1.5GB RAM (optimal for apps)
             this.config.vga_memory_size = 32 * 1024 * 1024; // 32MB VGA (better graphics)
+            
+            // Ensure screen_container is a DOM element, not a string
+            if (!this.container || typeof this.container === 'string') {
+                this.container = document.getElementById('screen_container');
+            }
+            if (!this.container) {
+                throw new Error('Screen container element not found');
+            }
             this.config.screen_container = this.container;
             this.config.autostart = true;
             
@@ -661,14 +683,23 @@ class WindowsEmulator {
                 }
                 
                 // Use V86 (not V86Starter) - check which one is available
+                // IMPORTANT: Don't deep clone config - DOM elements will be lost!
+                // Create a shallow copy instead, preserving DOM element references
+                const v86Config = { ...this.config };
+                // Deep clone nested objects but preserve DOM elements
+                if (v86Config.bios) v86Config.bios = { ...v86Config.bios };
+                if (v86Config.vga_bios) v86Config.vga_bios = { ...v86Config.vga_bios };
+                if (v86Config.cdrom) v86Config.cdrom = { ...v86Config.cdrom };
+                if (v86Config.hda) v86Config.hda = { ...v86Config.hda };
+                // Ensure screen_container is always a DOM element
+                v86Config.screen_container = this.container;
+                
+                console.log('Creating V86 with config, CDROM URL:', v86Config.cdrom?.url);
+                console.log('Screen container type:', typeof v86Config.screen_container, v86Config.screen_container?.tagName);
+                
                 if (typeof V86 !== 'undefined') {
-                    // Create a copy of config to ensure it's not modified
-                    const v86Config = JSON.parse(JSON.stringify(this.config));
-                    console.log('Creating V86 with config, CDROM URL:', v86Config.cdrom?.url);
                     this.emulator = new V86(v86Config);
                 } else if (typeof V86Starter !== 'undefined') {
-                    const v86Config = JSON.parse(JSON.stringify(this.config));
-                    console.log('Creating V86Starter with config, CDROM URL:', v86Config.cdrom?.url);
                     this.emulator = new V86Starter(v86Config);
                 } else {
                     throw new Error('Neither V86 nor V86Starter is available. v86.js may not have loaded correctly.');
