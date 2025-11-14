@@ -20,6 +20,13 @@ class WindowsEmulator {
         this.fps = 0;
         this.performanceMode = 'balanced'; // 'performance', 'balanced', 'quality'
         this.performanceOptimizer = new PerformanceOptimizer();
+        this.bootComplete = false;
+        
+        // Dynamic Island
+        this.dynamicIsland = null;
+        if (typeof DynamicIsland !== 'undefined') {
+            this.dynamicIsland = new DynamicIsland();
+        }
         
         // Initialize API client for enhanced capabilities
         this.apiClient = null;
@@ -35,6 +42,7 @@ class WindowsEmulator {
             memory_size: 1536 * 1024 * 1024, // 1.5GB RAM (optimal for Windows 10)
             vga_memory_size: 32 * 1024 * 1024, // 32MB VGA memory (better graphics)
             screen_container: this.container,
+            wasm_path: "https://unpkg.com/v86@latest/build/v86.wasm",
             bios: {
                 url: "https://unpkg.com/v86@latest/build/seabios.bin"
             },
@@ -64,14 +72,18 @@ class WindowsEmulator {
             acpi: true,
             apic: true,
             multiboot: false,
-            // Performance optimizations
+            // Performance optimizations - speed up boot
             fastboot: true,
+            disable_jit: false, // Enable JIT for faster execution
             // Better CPU emulation
             cpu_count: 1,
             // Optimize for Windows
             uart_override: "0x3F8",
             // Better disk I/O
-            disk_image_size: 8589934592
+            disk_image_size: 8589934592,
+            // Performance tweaks
+            initial_state: null, // Don't load saved state (faster initial boot)
+            filesystem: {} // Empty filesystem for faster boot
         };
         
         this.setupEventListeners();
@@ -230,12 +242,26 @@ class WindowsEmulator {
             this.updateCanvasSize();
             if (this.emulator) {
                 try {
-                    this.emulator.screen_set_size(
-                        this.container.offsetWidth,
-                        this.container.offsetHeight
-                    );
+                    // Try different method names for screen resize
+                    if (this.emulator.screen_set_size) {
+                        this.emulator.screen_set_size(
+                            this.container.offsetWidth,
+                            this.container.offsetHeight
+                        );
+                    } else if (this.emulator.screen && this.emulator.screen.set_size) {
+                        this.emulator.screen.set_size(
+                            this.container.offsetWidth,
+                            this.container.offsetHeight
+                        );
+                    } else if (this.emulator.v86 && this.emulator.v86.screen) {
+                        // v86 internal API
+                        this.emulator.v86.screen.set_size(
+                            this.container.offsetWidth,
+                            this.container.offsetHeight
+                        );
+                    }
                 } catch (err) {
-                    console.warn('Screen resize error:', err);
+                    // Screen resize is optional, don't show error
                 }
             }
         }, 250);
@@ -490,6 +516,9 @@ class WindowsEmulator {
             const windows10LiteUrl = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
             this.updateProgress(20);
             this.updateStatus('loading', 'Downloading Windows 10 Lite (1.1GB)...');
+            if (this.dynamicIsland) {
+                this.dynamicIsland.updateStatus('Downloading image (1.1GB)...', 0);
+            }
             
             // Load the Windows 10 Lite image
             await this.loadImage(windows10LiteUrl, 'cdrom');
@@ -567,6 +596,9 @@ class WindowsEmulator {
                 console.log('Emulator ready, Windows should start booting...');
                 this.updateProgress(60);
                 this.updateStatus('loading', 'Emulator ready, booting Windows...');
+                if (this.dynamicIsland) {
+                    this.dynamicIsland.updateStatus('Booting Windows...', 0);
+                }
                 // Focus canvas for keyboard input
                 setTimeout(() => {
                     this.canvas.focus();
