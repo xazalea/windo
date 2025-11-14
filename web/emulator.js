@@ -70,19 +70,9 @@ class WindowsEmulator {
                 // Use jsdelivr which supports CORS, fallback to local files
                 url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/vgabios.bin"
             },
-            cdrom: {
-                url: null,
-                async: true,
-                size: null
-            },
-            hda: {
-                url: null,
-                async: true,
-                size: 8589934592 // 8GB virtual disk (more space for apps)
-            },
-            fda: {
-                url: null
-            },
+            cdrom: null, // Will be set when loading image
+            hda: null, // Will be set when loading image
+            fda: null, // Not used
             boot_order: 0x213, // CD, C, A (boot from CD first for ISO)
             network_relay_url: "wss://relay.widgetry.org/",
             autostart: true,
@@ -693,8 +683,20 @@ class WindowsEmulator {
                 // Deep clone nested objects but preserve DOM elements
                 if (v86Config.bios) v86Config.bios = { ...v86Config.bios };
                 if (v86Config.vga_bios) v86Config.vga_bios = { ...v86Config.vga_bios };
-                if (v86Config.cdrom) v86Config.cdrom = { ...v86Config.cdrom };
-                if (v86Config.hda) v86Config.hda = { ...v86Config.hda };
+                if (v86Config.cdrom && v86Config.cdrom.url) {
+                    v86Config.cdrom = { ...v86Config.cdrom };
+                } else {
+                    v86Config.cdrom = null; // Explicitly set to null if no URL
+                }
+                if (v86Config.hda && v86Config.hda.url) {
+                    v86Config.hda = { ...v86Config.hda };
+                } else {
+                    v86Config.hda = null; // Explicitly set to null if no URL
+                }
+                // Remove fda if not used
+                if (!v86Config.fda || !v86Config.fda.url) {
+                    v86Config.fda = null;
+                }
                 // Ensure screen_container is always a DOM element (critical for v86.js)
                 // Re-validate container before passing to v86.js
                 if (!this.container || typeof this.container.getElementsByTagName !== 'function') {
