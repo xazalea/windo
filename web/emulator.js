@@ -610,22 +610,31 @@ class WindowsEmulator {
             this.config.autostart = true;
             
             // BIOS files with CORS-friendly sources - ensure they're always set
-            if (!this.config.bios) {
-                this.config.bios = {};
+            if (!this.config.bios || !this.config.bios.url) {
+                this.config.bios = {
+                    url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/seabios.bin"
+                };
             }
-            if (!this.config.bios.url) {
-                this.config.bios.url = "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/seabios.bin";
-            }
-            if (!this.config.vga_bios) {
-                this.config.vga_bios = {};
-            }
-            if (!this.config.vga_bios.url) {
-                this.config.vga_bios.url = "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/vgabios.bin";
+            if (!this.config.vga_bios || !this.config.vga_bios.url) {
+                this.config.vga_bios = {
+                    url: "https://cdn.jsdelivr.net/gh/copy/v86@master/bios/vgabios.bin"
+                };
             }
             
             // Ensure WASM path is set
             if (!this.config.wasm_path) {
                 this.config.wasm_path = "https://unpkg.com/v86@latest/build/v86.wasm";
+            }
+            
+            // Ensure all image configs are either null or have valid URLs (prevent undefined URLs)
+            if (this.config.cdrom && !this.config.cdrom.url) {
+                this.config.cdrom = null;
+            }
+            if (this.config.hda && !this.config.hda.url) {
+                this.config.hda = null;
+            }
+            if (this.config.fda && !this.config.fda.url) {
+                this.config.fda = null;
             }
             
             console.log('BIOS/WASM config:', {
