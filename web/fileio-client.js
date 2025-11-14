@@ -2,7 +2,9 @@
 // Provides unlimited cloud storage for Windows VM files
 class FileIOClient {
     constructor() {
-        this.baseUrl = 'https://file.io';
+        // Use proxy to avoid CORS issues, fallback to direct URL
+        this.baseUrl = '/api/fileio-proxy';
+        this.directUrl = 'https://file.io';
         this.apiKey = localStorage.getItem('fileio_api_key') || null;
         this.files = new Map(); // Cache of file metadata
         this.storageIndex = null; // Index of all stored files
@@ -35,11 +37,22 @@ class FileIOClient {
                 headers['Authorization'] = `Bearer ${this.apiKey}`;
             }
 
-            const response = await fetch(`${this.baseUrl}/`, {
+            // Try proxy first
+            let response = await fetch(`${this.baseUrl}/`, {
                 method: 'POST',
                 body: formData,
                 headers: headers
             });
+
+            // If proxy returns 404, try direct URL (may fail due to CORS)
+            if (!response.ok && response.status === 404) {
+                console.warn('File.IO proxy not available, trying direct URL (may fail due to CORS)');
+                response = await fetch(`${this.directUrl}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: headers
+                });
+            }
 
             if (!response.ok) {
                 throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
@@ -74,10 +87,19 @@ class FileIOClient {
     // Download a file from File.IO
     async downloadFile(key) {
         try {
-            const response = await fetch(`${this.baseUrl}/${key}`, {
+            // Try proxy first
+            let response = await fetch(`${this.baseUrl}/${key}`, {
                 method: 'GET',
                 redirect: 'follow'
             });
+
+            // If proxy returns 404, try direct URL
+            if (!response.ok && response.status === 404) {
+                response = await fetch(`${this.directUrl}/${key}`, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+            }
 
             if (!response.ok) {
                 throw new Error(`Download failed: ${response.status} ${response.statusText}`);
@@ -164,10 +186,19 @@ class FileIOClient {
                 headers['Authorization'] = `Bearer ${this.apiKey}`;
             }
 
-            const response = await fetch(`${this.baseUrl}/${key}`, {
+            // Try proxy first
+            let response = await fetch(`${this.baseUrl}/${key}`, {
                 method: 'DELETE',
                 headers: headers
             });
+
+            // If proxy returns 404, try direct URL
+            if (!response.ok && response.status === 404) {
+                response = await fetch(`${this.directUrl}/${key}`, {
+                    method: 'DELETE',
+                    headers: headers
+                });
+            }
 
             if (!response.ok) {
                 throw new Error(`Delete failed: ${response.status} ${response.statusText}`);

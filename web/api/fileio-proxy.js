@@ -15,10 +15,12 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     
     try {
-        const { method, path, body } = req;
+        const method = req.method;
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const path = url.pathname.replace('/api/fileio-proxy', '') || '/';
         
         // Construct File.IO API URL
-        const fileIOUrl = `https://file.io${path || '/'}`;
+        const fileIOUrl = `https://file.io${path}`;
         
         // Prepare fetch options
         const fetchOptions = {
@@ -28,14 +30,18 @@ export default async function handler(req, res) {
             }
         };
         
-        // For POST requests, forward the body
-        if (method === 'POST' && body) {
-            // If it's FormData, we need to handle it differently
-            if (body instanceof FormData) {
-                fetchOptions.body = body;
-            } else {
-                fetchOptions.headers['Content-Type'] = 'application/json';
-                fetchOptions.body = JSON.stringify(body);
+        // For POST requests, we need to handle FormData
+        if (method === 'POST') {
+            // Vercel automatically parses FormData, but we need to reconstruct it
+            // For now, we'll forward the raw body
+            const contentType = req.headers['content-type'] || '';
+            if (contentType.includes('multipart/form-data')) {
+                // Forward as-is (Vercel handles FormData)
+                fetchOptions.body = req.body;
+                // Don't set Content-Type header, let fetch set it with boundary
+            } else if (req.body) {
+                fetchOptions.headers['Content-Type'] = contentType;
+                fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
             }
         }
         
@@ -43,7 +49,18 @@ export default async function handler(req, res) {
         const response = await fetch(fileIOUrl, fetchOptions);
         
         // Get response data
-        const data = await response.json();
+        const contentType = response.headers.get('content-type') || '';
+        let data;
+        
+        if (contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            // For binary responses (file downloads), return as buffer
+            const buffer = await response.arrayBuffer();
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Content-Length', buffer.byteLength);
+            return res.status(response.status).send(Buffer.from(buffer));
+        }
         
         // Forward status and data
         res.status(response.status).json(data);

@@ -116,49 +116,69 @@ class StorageManager {
             const relativePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
             const existingFile = this.storageIndex.files[relativePath];
             
-            let result;
-            if (existingFile && existingFile.key) {
-                // Update existing file
-                try {
-                    // Delete old file first
-                    await this.fileIO.deleteFile(existingFile.key);
-                } catch (err) {
-                    // Ignore delete errors
-                }
+            const oldSize = existingFile ? existingFile.size : 0;
+            const newSize = fileBlob.size;
+            
+            // Always store in localStorage first (always works)
+            if (!this.storageIndex.files) {
+                this.storageIndex.files = {};
             }
             
-            // Upload to File.IO
-            result = await this.fileIO.uploadFile(file, {
-                autoDelete: false, // Keep files as long as possible
-                maxDownloads: 0 // Unlimited downloads
-            });
-            
-            // Update storage index
-            const oldSize = existingFile ? existingFile.size : 0;
-            const newSize = result.size || fileBlob.size;
+            // Store file data in localStorage (for small files)
+            const fileDataString = await fileBlob.text().catch(() => null);
             
             this.storageIndex.files[relativePath] = {
-                key: result.key,
                 name: fileName,
                 path: relativePath,
                 size: newSize,
-                mimeType: result.mimeType || metadata.mimeType,
-                created: existingFile ? existingFile.created : (result.created || new Date().toISOString()),
-                modified: result.modified || new Date().toISOString(),
-                link: result.link,
+                mimeType: metadata.mimeType || file.type || 'application/octet-stream',
+                created: existingFile ? existingFile.created : new Date().toISOString(),
+                modified: new Date().toISOString(),
+                data: fileDataString, // Store data directly for small files
                 ...metadata
             };
+            
+            // Try to upload to File.IO (optional, may fail due to CORS)
+            let result = null;
+            try {
+                if (existingFile && existingFile.key) {
+                    // Try to delete old file first
+                    try {
+                        await this.fileIO.deleteFile(existingFile.key);
+                    } catch (err) {
+                        // Ignore delete errors
+                    }
+                }
+                
+                // Upload to File.IO
+                result = await this.fileIO.uploadFile(file, {
+                    autoDelete: false, // Keep files as long as possible
+                    maxDownloads: 0 // Unlimited downloads
+                });
+                
+                // Update with File.IO metadata if upload succeeded
+                if (result.success && result.key) {
+                    this.storageIndex.files[relativePath].key = result.key;
+                    this.storageIndex.files[relativePath].link = result.link;
+                }
+            } catch (uploadError) {
+                // File.IO upload failed (CORS or other issue), but localStorage is saved
+                console.warn('Could not upload file to File.IO, using localStorage only:', uploadError);
+            }
             
             // Update total size
             this.storageIndex.totalSize = (this.storageIndex.totalSize || 0) - oldSize + newSize;
             if (!existingFile) {
-                this.storageIndex.fileCount++;
+                this.storageIndex.fileCount = (this.storageIndex.fileCount || 0) + 1;
             }
             
             // Update virtual drive
+            if (!this.virtualDrive) {
+                this.virtualDrive = new Map();
+            }
             this.virtualDrive.set(relativePath, {
-                key: result.key,
-                cached: false,
+                key: result?.key || null,
+                cached: true, // Cached in localStorage
                 size: newSize
             });
             
@@ -167,10 +187,10 @@ class StorageManager {
             
             return {
                 success: true,
-                key: result.key,
+                key: result?.key || null,
                 path: relativePath,
                 size: newSize,
-                link: result.link
+                link: result?.link || null
             };
         } catch (error) {
             console.error('Error storing file:', error);
