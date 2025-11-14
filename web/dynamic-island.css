@@ -177,6 +177,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    transition: opacity 0.15s ease;
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.95);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -187,12 +192,7 @@
     height: 16px;
     opacity: 0.8;
     flex-shrink: 0;
-}
-    font-size: 13px;
-    letter-spacing: 0.01em;
-    transition: opacity 0.15s ease;
-    opacity: 1;
-    color: rgba(255, 255, 255, 0.95);
+    display: none; /* Hidden by default to keep it minimal */
 }
 
 /* Progress bar */
