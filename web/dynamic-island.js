@@ -414,7 +414,7 @@ class DynamicIsland {
         if (!this.emulator || !this.emulator.storageManager) return;
         
         const stats = this.emulator.storageManager.getStats();
-        const files = this.emulator.storageManager.listFiles();
+        const files = this.emulator.storageManager.listFiles('/cloud');
         
         // Update stats
         const filesEl = document.getElementById('stat-files');
@@ -425,26 +425,54 @@ class DynamicIsland {
         if (sizeEl) sizeEl.textContent = (stats.totalSize / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
         if (cacheEl) cacheEl.textContent = (stats.cacheSize / (1024 * 1024)).toFixed(1) + ' MB';
         
+        // Update sync status if available
+        if (this.emulator.filesystemBridge) {
+            const syncStatus = this.emulator.filesystemBridge.getSyncStatus();
+            const syncStatusText = document.getElementById('sync-status-text');
+            if (syncStatusText) {
+                syncStatusText.textContent = `Auto-Sync: ${syncStatus.enabled ? 'ON' : 'OFF'}`;
+                if (syncStatus.pendingFiles > 0) {
+                    syncStatusText.textContent += ` (${syncStatus.pendingFiles} pending)`;
+                }
+            }
+        }
+        
         // Update files list
         const filesContainer = document.getElementById('storage-files');
         if (filesContainer) {
             if (files.length === 0) {
-                filesContainer.innerHTML = '<div class="storage-empty">No files stored yet</div>';
+                filesContainer.innerHTML = '<div class="storage-empty">No files stored yet. Files will automatically sync when saved in Windows.</div>';
             } else {
-                filesContainer.innerHTML = files.map(file => `
+                filesContainer.innerHTML = files.map(file => {
+                    const fileName = file.path.split('/').pop() || file.name || 'Unknown';
+                    const relativePath = file.path.replace(/^\//, '');
+                    const fileInfo = this.emulator.storageManager.storageIndex.files[relativePath];
+                    const shareLink = fileInfo?.link || file.link;
+                    const isInstalled = fileInfo?.installed || file.path.includes('Program Files');
+                    
+                    return `
                     <div class="storage-file-item">
                         <div class="file-info">
-                            <span class="file-name">${file.name}</span>
+                            <span class="file-name">${this.escapeHtml(fileName)} ${isInstalled ? '📦' : ''}</span>
                             <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
                         </div>
-                        <button class="file-delete-btn" onclick="window.dynamicIslandInstance?.deleteStorageFile('${file.path}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
+                        <div class="file-actions">
+                            ${shareLink ? `<button class="file-share-btn" onclick="navigator.clipboard.writeText('${shareLink}').then(() => { if(window.dynamicIslandInstance) window.dynamicIslandInstance.updateStatus('Link copied!', 2000); })" title="Copy share link">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                </svg>
+                            </button>` : ''}
+                            <button class="file-delete-btn" onclick="if(window.dynamicIslandInstance) window.dynamicIslandInstance.deleteStorageFile('${file.path}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             }
         }
     }
