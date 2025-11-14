@@ -1063,6 +1063,183 @@ class DynamicIsland {
         return div.innerHTML;
     }
 
+    createNetworkPanel() {
+        const networkPanel = document.createElement('div');
+        networkPanel.className = 'island-network-panel';
+        networkPanel.id = 'island-network-panel';
+        networkPanel.style.display = 'none';
+        
+        networkPanel.innerHTML = `
+            <div class="network-panel-header">
+                <div class="network-header-left">
+                    <h3>Network Settings</h3>
+                    <span class="network-badge" id="network-badge">Disconnected</span>
+                </div>
+                <button class="network-close-btn" onclick="window.dynamicIslandInstance?.exitNetworkMode()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="network-panel-content">
+                <div class="network-config">
+                    <div class="form-group">
+                        <label for="headscale-url">Headscale Server URL</label>
+                        <input type="url" id="headscale-url" class="network-input" placeholder="https://headscale.example.com" value="${this.emulator?.headscaleClient?.serverUrl || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label for="headscale-api-key">API Key (Optional)</label>
+                        <input type="password" id="headscale-api-key" class="network-input" placeholder="Enter API key if required">
+                    </div>
+                    <div class="network-status" id="network-status">
+                        <div class="status-item">
+                            <span class="status-label">Status:</span>
+                            <span class="status-value" id="network-status-value">Disconnected</span>
+                        </div>
+                        <div class="status-item" id="network-ip-item" style="display: none;">
+                            <span class="status-label">IP Address:</span>
+                            <span class="status-value" id="network-ip-value">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="network-actions">
+                    <button class="network-action-btn" id="connect-network-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        Connect
+                    </button>
+                    <button class="network-action-btn" id="disconnect-network-btn" style="display: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"></path>
+                        </svg>
+                        Disconnect
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        this.container.appendChild(networkPanel);
+        
+        // Setup event listeners
+        setTimeout(() => {
+            const connectBtn = document.getElementById('connect-network-btn');
+            const disconnectBtn = document.getElementById('disconnect-network-btn');
+            const urlInput = document.getElementById('headscale-url');
+            const apiKeyInput = document.getElementById('headscale-api-key');
+            
+            if (connectBtn && this.emulator && this.emulator.headscaleClient) {
+                connectBtn.onclick = async () => {
+                    const url = urlInput?.value || '';
+                    const apiKey = apiKeyInput?.value || null;
+                    
+                    if (!url) {
+                        this.updateStatus('Please enter Headscale server URL', 3000, 'error');
+                        return;
+                    }
+                    
+                    this.emulator.headscaleClient.configure(url, apiKey);
+                    this.updateStatus('Connecting to network...', 0, 'loading');
+                    
+                    try {
+                        const result = await this.emulator.headscaleClient.connect();
+                        this.updateStatus('Network connected', 3000, 'success');
+                        this.refreshNetworkDisplay();
+                    } catch (error) {
+                        this.updateStatus(error.message, 5000, 'error');
+                        this.refreshNetworkDisplay();
+                    }
+                };
+            }
+            
+            if (disconnectBtn && this.emulator && this.emulator.headscaleClient) {
+                disconnectBtn.onclick = async () => {
+                    this.updateStatus('Disconnecting...', 0, 'loading');
+                    try {
+                        await this.emulator.headscaleClient.disconnect();
+                        this.updateStatus('Network disconnected', 2000, 'default');
+                        this.refreshNetworkDisplay();
+                    } catch (error) {
+                        this.updateStatus(error.message, 3000, 'error');
+                    }
+                };
+            }
+        }, 100);
+    }
+
+    enterNetworkMode() {
+        this.state = 'network-mode';
+        this.isExpanded = true;
+        this.container.classList.add('network-mode');
+        const networkPanel = document.getElementById('island-network-panel');
+        if (networkPanel) {
+            networkPanel.style.display = 'block';
+        }
+        this.container.style.width = 'auto';
+        this.container.style.minWidth = '400px';
+        this.container.style.maxWidth = '600px';
+        this.container.style.height = 'auto';
+        this.container.style.maxHeight = '70vh';
+        
+        this.refreshNetworkDisplay();
+    }
+
+    exitNetworkMode() {
+        this.state = this.windowsReady ? 'compact' : 'boot-mode';
+        this.isExpanded = false;
+        this.container.classList.remove('network-mode');
+        const networkPanel = document.getElementById('island-network-panel');
+        if (networkPanel) {
+            networkPanel.style.display = 'none';
+        }
+        this.container.style.width = 'auto';
+        this.container.style.height = '40px';
+        this.container.style.maxHeight = 'none';
+        
+        if (!this.windowsReady) {
+            this.enterBootMode();
+        } else {
+            this.collapse();
+        }
+    }
+
+    refreshNetworkDisplay() {
+        if (!this.emulator || !this.emulator.headscaleClient) return;
+        
+        const status = this.emulator.headscaleClient.getStatus();
+        const badge = document.getElementById('network-badge');
+        const statusValue = document.getElementById('network-status-value');
+        const ipValue = document.getElementById('network-ip-value');
+        const ipItem = document.getElementById('network-ip-item');
+        const connectBtn = document.getElementById('connect-network-btn');
+        const disconnectBtn = document.getElementById('disconnect-network-btn');
+        
+        if (badge) {
+            badge.textContent = status.connected ? 'Connected' : (status.status === 'connecting' ? 'Connecting...' : 'Disconnected');
+            badge.className = `network-badge ${status.status}`;
+        }
+        
+        if (statusValue) {
+            statusValue.textContent = status.connected ? 'Connected' : (status.status === 'connecting' ? 'Connecting...' : 'Disconnected');
+        }
+        
+        if (status.connected && status.networkInfo && status.networkInfo.ip) {
+            if (ipValue) ipValue.textContent = status.networkInfo.ip;
+            if (ipItem) ipItem.style.display = 'flex';
+        } else {
+            if (ipItem) ipItem.style.display = 'none';
+        }
+        
+        if (connectBtn) {
+            connectBtn.style.display = status.connected ? 'none' : 'flex';
+        }
+        
+        if (disconnectBtn) {
+            disconnectBtn.style.display = status.connected ? 'flex' : 'none';
+        }
+    }
+
     updateProgress(percent, statusText = null, totalBytes = null, loadedBytes = null) {
         if (!this.container) return;
         
