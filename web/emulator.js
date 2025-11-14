@@ -780,8 +780,16 @@ class WindowsEmulator {
     }
 
     updateStatus(status, text) {
-        this.statusIndicator.className = `status-dot ${status}`;
-        this.statusText.textContent = text;
+        if (this.statusIndicator) {
+            this.statusIndicator.className = `status-dot ${status}`;
+        }
+        if (this.statusText) {
+            this.statusText.textContent = text;
+        }
+        // Update dynamic island
+        if (this.dynamicIsland && text) {
+            this.dynamicIsland.updateStatus(text, 0);
+        }
     }
 
     updateProgress(percent) {
