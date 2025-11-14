@@ -341,55 +341,11 @@
             });
         })();
         
-        // Toolbar auto-hide and show functionality
-        let toolbarTimeout;
-        const toolbar = document.getElementById('toolbar');
-        let toolbarVisible = false;
-        
-        function showToolbar() {
-            if (toolbar) {
-                toolbar.classList.remove('hidden');
-                toolbarVisible = true;
-                clearTimeout(toolbarTimeout);
-                // Auto-hide after 5 seconds
-                toolbarTimeout = setTimeout(() => {
-                    hideToolbar();
-                }, 5000);
-            }
-        }
-        
-        function hideToolbar() {
-            if (toolbar) {
-                toolbar.classList.add('hidden');
-                toolbarVisible = false;
-            }
-        }
-        
-        function toggleToolbar() {
-            if (toolbarVisible) {
-                hideToolbar();
-            } else {
-                showToolbar();
-            }
-        }
-        
-        // Auto-hide toolbar on load
-        document.addEventListener('DOMContentLoaded', () => {
-            hideToolbar();
-        });
-        
-        // Keyboard shortcuts
+        // Keyboard shortcuts (Dynamic Island handles UI)
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Shift+T to show/hide toolbar
-            if (e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
-                e.preventDefault();
-                toggleToolbar();
-                return;
-            }
-            
-            // Settings with S (only if toolbar is visible)
-            if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey) {
-                if (toolbarVisible && typeof showSettings === 'function') {
+            // Settings with S
+            if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                if (typeof showSettings === 'function') {
                     e.preventDefault();
                     showSettings();
                 }
@@ -402,11 +358,13 @@
                 return;
             }
             
-            // Restart with R (only if toolbar is visible)
+            // Restart with R
             if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
-                if (toolbarVisible && typeof restartVM === 'function') {
+                if (typeof restartVM === 'function') {
                     e.preventDefault();
-                    restartVM();
+                    if (confirm('Restart Windows VM?')) {
+                        restartVM();
+                    }
                 }
             }
             
@@ -416,22 +374,11 @@
                 toggleFullscreen();
             }
             
-            // Esc to exit fullscreen or hide toolbar
+            // Esc to exit fullscreen
             if (e.key === 'Escape') {
                 if (document.fullscreenElement) {
                     document.exitFullscreen();
-                } else if (toolbarVisible) {
-                    hideToolbar();
                 }
-            }
-        });
-        
-        // Show toolbar on mouse move to top
-        let mouseY = 0;
-        document.addEventListener('mousemove', (e) => {
-            mouseY = e.clientY;
-            if (mouseY < 50 && !toolbarVisible) {
-                showToolbar();
             }
         });
         
@@ -444,6 +391,24 @@
                 document.exitFullscreen();
             }
         }
+        
+        // Dynamic Island toggle
+        let dynamicIslandInstance = null;
+        function toggleDynamicIsland() {
+            if (dynamicIslandInstance) {
+                dynamicIslandInstance.toggle();
+            } else if (window.emulator && window.emulator.dynamicIsland) {
+                dynamicIslandInstance = window.emulator.dynamicIsland;
+                dynamicIslandInstance.toggle();
+            }
+        }
+
+        // Initialize dynamic island after emulator loads
+        setTimeout(() => {
+            if (window.emulator && window.emulator.dynamicIsland) {
+                dynamicIslandInstance = window.emulator.dynamicIsland;
+            }
+        }, 1000);
     </script>
 </body>
 </html>
