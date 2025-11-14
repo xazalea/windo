@@ -604,6 +604,28 @@ class WindowsEmulator {
                     this.canvas.focus();
                 }, 1000);
             });
+
+            // Listen for boot progress and optimize
+            let bootProgressCounter = 0;
+            this.emulator.add_listener("screen-put-char", () => {
+                if (this.dynamicIsland && !this.bootComplete) {
+                    bootProgressCounter++;
+                    // Update status every 500 chars to avoid spam
+                    if (bootProgressCounter % 500 === 0) {
+                        const statuses = ['Booting...', 'Loading drivers...', 'Starting services...', 'Initializing...'];
+                        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+                        this.dynamicIsland.updateStatus(randomStatus, 2000);
+                    }
+                }
+            });
+
+            // Mark boot as complete after a delay
+            setTimeout(() => {
+                this.bootComplete = true;
+                if (this.dynamicIsland) {
+                    this.dynamicIsland.updateStatus('Windows ready', 3000);
+                }
+            }, 60000); // Assume boot complete after 60 seconds
             
             // Listen for boot completion
             this.emulator.add_listener("boot", () => {

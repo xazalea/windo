@@ -169,9 +169,11 @@
     </div>
 
     <!-- Load scripts in proper order -->
+    <link rel="stylesheet" href="dynamic-island.css">
     <script src="libv86.js"></script>
     <script src="performance.js"></script>
     <script src="browserpod-integration.js"></script>
+    <script src="dynamic-island.js"></script>
     <script>
         // Load v86.js - use local file first (from git submodule)
         (function() {
