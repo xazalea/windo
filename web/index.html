@@ -427,11 +427,8 @@
                 });
             }
             
-                // Check if terms were accepted
-                if (localStorage.getItem('wind0_terms_accepted') !== 'true') {
-                    showTermsModal();
-                    return;
-                }
+                // Terms barrier removed - users can access directly
+                // Terms can be viewed via button in dynamic island
             
             // Wait for v86.js to load (it's loaded via script tag above)
             function waitForV86() {

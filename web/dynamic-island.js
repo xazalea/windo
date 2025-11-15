@@ -128,6 +128,11 @@ class DynamicIsland {
                 icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>`, 
                 action: 'minimize', 
                 title: 'Minimize' 
+            },
+            { 
+                icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>`, 
+                action: 'terms', 
+                title: 'Terms & Conditions' 
             }
         ];
         
@@ -969,7 +974,21 @@ class DynamicIsland {
             case 'minimize':
                 this.toggle();
                 break;
+            case 'terms':
+                this.showTerms();
+                break;
         }
+    }
+    
+    showTerms() {
+        // Open terms in a new tab or show modal if available
+        if (typeof showTermsModal === 'function') {
+            showTermsModal();
+        } else {
+            // Fallback: open terms.html in new tab
+            window.open('/terms', '_blank');
+        }
+        this.updateStatus('Terms opened', 2000);
     }
 
     toggleFullscreen() {
