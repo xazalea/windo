@@ -232,6 +232,10 @@ class DynamicIsland {
             'status 404', // General 404 errors (expected until functions are deployed)
             '/api/windows-iso-proxy', // Specific proxy endpoint (404 expected until deployed)
             '/api/fileio-proxy', // Specific proxy endpoint (404 expected until deployed)
+            'Failed to cache image', // Expected when server unavailable
+            'Server caching failed', // Expected fallback
+            'Health check failed', // Expected when backend not running
+            'Failed to get images', // Expected when backend not running
         ];
         
         console.error = function(...args) {
