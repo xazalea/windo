@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Node.js Backend
+  nodejs:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - ALLOWED_ORIGINS=*
+    volumes:
+      - ./server/storage:/app/storage
+    networks:
+      - azalea-network
+    restart: unless-stopped
+
+  # Python Microservice
+  python:
+    build:
+      context: ./python-service
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DEBUG=false
+    volumes:
+      - ./python-service/storage:/app/storage
+    networks:
+      - azalea-network
+    restart: unless-stopped
+    depends_on:
+      - nodejs
+
+networks:
+  azalea-network:
+    driver: bridge
+
+volumes:
+  storage:
+    driver: local
+

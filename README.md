@@ -106,8 +106,31 @@ See [NODEJS_BACKEND.md](./NODEJS_BACKEND.md) for details.
 - **App Launch**: 5-15 seconds
 - **Responsiveness**: Excellent for basic apps
 
+## 🏗️ Enhanced Architecture
+
+The project now features a **modular, multi-technology architecture**:
+
+- ✅ **Node.js (Express.js)**: Enhanced REST API and WebSocket server
+- ✅ **Python (Flask)**: Microservice for image processing and automation
+- ✅ **WebAssembly**: Performance-critical operations module
+- ✅ **React (Optional)**: Modern UI components for gradual enhancement
+- ✅ **Docker Compose**: Multi-service orchestration
+
+**Quick Start with Enhanced Architecture:**
+```bash
+# Start all services
+docker-compose up -d
+
+# Or start individually (see INTEGRATION_GUIDE.md)
+```
+
+See [ENHANCED_ARCHITECTURE.md](./ENHANCED_ARCHITECTURE.md) and [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) for details.
+
 ## 📖 Documentation
 
+- [ENHANCED_ARCHITECTURE.md](./ENHANCED_ARCHITECTURE.md) - Multi-technology architecture
+- [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) - Service integration guide
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Detailed architecture docs
 - [AZALEA_README.md](web/AZALEA_README.md) - Complete Azalea guide
 - [PERFORMANCE.md](web/PERFORMANCE.md) - Performance optimizations
 - [TESTING.md](web/TESTING.md) - Testing guide

@@ -1,15 +1,16 @@
-// Azalea Windows Emulator - Node.js Backend Server
-// Provides enhanced performance, storage, and capabilities
+// Enhanced Azalea Windows Emulator - Node.js Backend Server
+// Modular architecture with Express.js
 
 import express from 'express';
 import { WebSocketServer } from 'ws';
 import cors from 'cors';
 import compression from 'compression';
-import multer from 'multer';
+import http from 'http';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import http from 'http';
+import apiRoutes from './routes/api.js';
+import { requestLogger, errorHandler } from './middleware/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,26 +34,10 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(requestLogger);
 
 // Serve static files
 app.use('/static', express.static(path.join(__dirname, 'public')));
-
-// Configure multer for file uploads
-const upload = multer({
-    dest: IMAGES_DIR,
-    limits: {
-        fileSize: 10 * 1024 * 1024 * 1024 // 10GB max
-    },
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => {
-            cb(null, IMAGES_DIR);
-        },
-        filename: (req, file, cb) => {
-            const uniqueName = `${Date.now()}-${file.originalname}`;
-            cb(null, uniqueName);
-        }
-    })
-});
 
 // Health check
 app.get('/health', (req, res) => {
@@ -60,19 +45,21 @@ app.get('/health', (req, res) => {
         status: 'ok',
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        storage: {
-            total: getStorageStats().total,
-            used: getStorageStats().used,
-            available: getStorageStats().available
+        storage: getStorageStats(),
+        services: {
+            nodejs: 'running',
+            python: checkPythonService(),
+            websocket: 'running'
         }
     });
 });
 
+// API Routes
+app.use('/api', apiRoutes);
+
 // Get storage statistics
 function getStorageStats() {
     try {
-        const stats = fs.statSync(STORAGE_DIR);
-        // Simplified - in production, use proper disk space checking
         return {
             total: 100 * 1024 * 1024 * 1024, // 100GB (example)
             used: getDirectorySize(STORAGE_DIR),
@@ -102,152 +89,21 @@ function getDirectorySize(dirPath) {
     return totalSize;
 }
 
-// API Routes
-
-// Get available Windows images
-app.get('/api/images', (req, res) => {
-    try {
-        const images = fs.readdirSync(IMAGES_DIR)
-            .filter(file => /\.(img|iso|vmdk|vdi)$/i.test(file))
-            .map(file => {
-                const filePath = path.join(IMAGES_DIR, file);
-                const stats = fs.statSync(filePath);
-                return {
-                    name: file,
-                    size: stats.size,
-                    created: stats.birthtime,
-                    url: `/api/images/${file}`
-                };
-            });
-        
-        res.json({ images });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Upload Windows image
-app.post('/api/images/upload', upload.single('image'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    res.json({
-        success: true,
-        file: {
-            name: req.file.filename,
-            size: req.file.size,
-            url: `/api/images/${req.file.filename}`
-        }
-    });
-});
-
-// Download Windows image (streaming for large files)
-app.get('/api/images/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(IMAGES_DIR, filename);
-    
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: 'Image not found' });
-    }
-    
-    const stats = fs.statSync(filePath);
-    const fileSize = stats.size;
-    const range = req.headers.range;
-    
-    if (range) {
-        // Support range requests for large files
-        const parts = range.replace(/bytes=/, "").split("-");
-        const start = parseInt(parts[0], 10);
-        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-        const chunksize = (end - start) + 1;
-        const file = fs.createReadStream(filePath, { start, end });
-        const head = {
-            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-            'Accept-Ranges': 'bytes',
-            'Content-Length': chunksize,
-            'Content-Type': 'application/octet-stream',
-        };
-        res.writeHead(206, head);
-        file.pipe(res);
-    } else {
-        const head = {
-            'Content-Length': fileSize,
-            'Content-Type': 'application/octet-stream',
-        };
-        res.writeHead(200, head);
-        fs.createReadStream(filePath).pipe(res);
-    }
-});
-
-// Cache Windows image from URL
-app.post('/api/images/cache', async (req, res) => {
-    const { url, filename } = req.body;
-    
-    if (!url) {
-        return res.status(400).json({ error: 'URL required' });
-    }
-    
+// Check Python service availability
+async function checkPythonService() {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch: ${response.statusText}`);
-        }
-        
-        const filePath = path.join(IMAGES_DIR, filename || path.basename(url));
-        const writeStream = fs.createWriteStream(filePath);
-        
-        if (response.body) {
-            response.body.pipe(writeStream);
-            
-            writeStream.on('finish', () => {
-                res.json({
-                    success: true,
-                    file: {
-                        name: path.basename(filePath),
-                        size: fs.statSync(filePath).size,
-                        url: `/api/images/${path.basename(filePath)}`
-                    }
-                });
-            });
-            
-            writeStream.on('error', (err) => {
-                res.status(500).json({ error: err.message });
-            });
-        } else {
-            res.status(500).json({ error: 'No response body' });
-        }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const response = await fetch('http://localhost:5000/health', {
+            signal: AbortSignal.timeout(1000)
+        });
+        return response.ok ? 'running' : 'unavailable';
+    } catch {
+        return 'unavailable';
     }
-});
+}
 
-// Performance optimization endpoint
-app.post('/api/optimize', (req, res) => {
-    const { action, config } = req.body;
-    
-    switch (action) {
-        case 'preload':
-            // Preload Windows image into memory cache
-            const imagePath = path.join(IMAGES_DIR, config.filename);
-            if (fs.existsSync(imagePath)) {
-                // In production, implement actual caching
-                res.json({ success: true, message: 'Image preloaded' });
-            } else {
-                res.status(404).json({ error: 'Image not found' });
-            }
-            break;
-            
-        case 'compress':
-            // Compress image (would use actual compression library)
-            res.json({ success: true, message: 'Compression queued' });
-            break;
-            
-        default:
-            res.status(400).json({ error: 'Unknown action' });
-    }
-});
+// Error handling
+app.use(errorHandler);
 
 // WebSocket server for real-time communication
 const server = http.createServer(app);
@@ -264,23 +120,18 @@ wss.on('connection', (ws, req) => {
                 case 'ping':
                     ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
                     break;
-                    
                 case 'get_image_progress':
-                    // Return download progress for cached images
                     ws.send(JSON.stringify({
                         type: 'image_progress',
-                        progress: 100 // Would track actual progress
+                        progress: 100
                     }));
                     break;
-                    
                 case 'optimize_request':
-                    // Handle optimization requests
                     ws.send(JSON.stringify({
                         type: 'optimize_response',
                         success: true
                     }));
                     break;
-                    
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
             }
@@ -293,7 +144,6 @@ wss.on('connection', (ws, req) => {
         console.log('WebSocket client disconnected');
     });
     
-    // Send initial connection confirmation
     ws.send(JSON.stringify({
         type: 'connected',
         serverTime: Date.now(),
@@ -301,17 +151,19 @@ wss.on('connection', (ws, req) => {
             storage: true,
             caching: true,
             optimization: true,
-            websocket: true
+            websocket: true,
+            python: await checkPythonService() === 'running'
         }
     }));
 });
 
 // Start server
 server.listen(PORT, () => {
-    console.log(`🚀 Azalea Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Enhanced Azalea Server running on http://localhost:${PORT}`);
     console.log(`📁 Storage: ${STORAGE_DIR}`);
     console.log(`💾 Images: ${IMAGES_DIR}`);
     console.log(`⚡ Performance optimizations enabled`);
+    console.log(`🔌 WebSocket server ready`);
 });
 
 // Graceful shutdown
@@ -322,4 +174,3 @@ process.on('SIGTERM', () => {
         process.exit(0);
     });
 });
-

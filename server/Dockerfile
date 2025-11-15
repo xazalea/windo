@@ -8,8 +8,10 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci --only=production
 
-# Copy server files
-COPY . .
+# Copy server files (including routes and middleware)
+COPY server.js ./
+COPY routes ./routes
+COPY middleware ./middleware
 
 # Create storage directories
 RUN mkdir -p storage/images storage/cache
