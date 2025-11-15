@@ -1060,6 +1060,9 @@ class DynamicIsland {
         clearTimeout(this.autoHideTimeout);
         this.container.style.opacity = '1';
         
+        // Always maintain centering transform
+        this.positionTopCenter();
+        
         // Handle errors with AI paraphrasing
         if (statusType === 'error') {
             this.handleError(text);
@@ -1104,6 +1107,9 @@ class DynamicIsland {
     }
 
     async handleError(errorText) {
+        // Always maintain centering
+        this.positionTopCenter();
+        
         // Add to error queue
         this.errorQueue.push(errorText);
         
@@ -1125,6 +1131,9 @@ class DynamicIsland {
                 this.statusText = errorText;
             }
         }
+        
+        // Ensure centering is maintained after error state
+        this.positionTopCenter();
     }
 
     async paraphraseError(errorText) {
@@ -1150,6 +1159,9 @@ class DynamicIsland {
     setStatusColor(type) {
         if (!this.container) return;
         
+        // Always maintain centering when changing status
+        this.positionTopCenter();
+        
         // Remove all status color classes
         this.container.classList.remove('status-default', 'status-loading', 'status-success', 'status-error', 'status-warning');
         
@@ -1174,6 +1186,9 @@ class DynamicIsland {
             default:
                 this.container.classList.add('status-default');
         }
+        
+        // Ensure centering is maintained
+        this.positionTopCenter();
     }
 
     updateNetworkStatus(status) {

@@ -51,6 +51,10 @@
 .dynamic-island.status-error {
     border-color: #ef4444;
     background: #2e1a1a;
+    /* Ensure centering is maintained */
+    transform: translateX(-50%) !important;
+    left: 50% !important;
+    right: auto !important;
 }
 
 .dynamic-island.status-warning {
@@ -87,6 +91,8 @@
 /* Error Animation - Subtle pulse */
 .dynamic-island.anim-error {
     animation: error-pulse 1.5s ease-in-out infinite;
+    /* Ensure transform is maintained during error animation */
+    transform: translateX(-50%) !important;
 }
 
 @keyframes error-pulse {

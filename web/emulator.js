@@ -572,22 +572,34 @@ class WindowsEmulator {
             
             // Try proxy first, fallback to direct URL if proxy fails
             try {
-                // Test if proxy is available
-                const testResponse = await fetch(windows10LiteUrl, { method: 'HEAD' });
+                // Test if proxy is available with a quick HEAD request
+                const testResponse = await fetch(windows10LiteUrl, { 
+                    method: 'HEAD',
+                    signal: AbortSignal.timeout(5000) // 5 second timeout
+                });
                 if (testResponse.ok || testResponse.status === 206) {
                     // Proxy is available, use it
+                    console.log('Using Windows ISO proxy');
                     await this.loadImage(windows10LiteUrl, 'cdrom');
                 } else {
                     throw new Error('Proxy returned ' + testResponse.status);
                 }
             } catch (proxyError) {
                 console.warn('Proxy not available, trying direct URL:', proxyError);
+                if (this.dynamicIsland) {
+                    this.dynamicIsland.updateStatus('Proxy unavailable, using direct download...', 3000, 'warning');
+                }
                 // Fallback to archive.org directly (may have CORS issues, but worth trying)
                 try {
+                    console.log('Attempting direct download from archive.org');
                     await this.loadImage(archiveOrgUrl, 'cdrom');
                 } catch (directError) {
                     console.error('Both proxy and direct URL failed:', directError);
-                    throw new Error('Unable to load Windows image. Please check your internet connection.');
+                    const errorMsg = 'Unable to load Windows image. The proxy server may not be deployed yet. Please try again in a few minutes or select a different image.';
+                    if (this.dynamicIsland) {
+                        this.dynamicIsland.updateStatus('Image load failed', 5000, 'error');
+                    }
+                    throw new Error(errorMsg);
                 }
             }
         } catch (error) {
