@@ -220,6 +220,13 @@ class DynamicIsland {
             'File.IO proxy not available', // Expected fallback
             'Azalea server not available', // Expected fallback
             'localStorage only', // Expected fallback message
+            'Proxy returned 404', // Expected when proxy isn't deployed yet
+            'Proxy not available', // Expected fallback message
+            'Loading the image', // v86 library errors when image fails to load (expected with 404)
+            'failed (status 404)', // v86 library 404 errors
+            'status 404', // General 404 errors (expected until functions are deployed)
+            '/api/windows-iso-proxy', // Specific proxy endpoint (404 expected until deployed)
+            '/api/fileio-proxy', // Specific proxy endpoint (404 expected until deployed)
         ];
         
         console.error = function(...args) {
@@ -229,13 +236,14 @@ class DynamicIsland {
             const errorMsg = args.join(' ');
             const isIgnored = ignoredPatterns.some(pattern => errorMsg.includes(pattern));
             
+            // Only show critical errors that aren't in our ignored list
+            // Don't show 404s for API endpoints (expected until deployed)
+            // Don't show image loading failures from v86 (expected when proxy unavailable)
             if (!isIgnored && (
-                errorMsg.includes('Failed to load') || 
-                errorMsg.includes('404') || 
-                errorMsg.includes('boot') ||
-                errorMsg.includes('disk') ||
-                errorMsg.includes('error') ||
-                errorMsg.includes('Error')
+                (errorMsg.includes('Failed to load') && !errorMsg.includes('404') && !errorMsg.includes('image')) ||
+                (errorMsg.includes('boot') && !errorMsg.includes('404')) ||
+                (errorMsg.includes('disk') && !errorMsg.includes('404')) ||
+                (errorMsg.includes('error') && !errorMsg.includes('404') && !errorMsg.includes('proxy'))
             )) {
                 // Only show critical errors, and only briefly
                 self.setStatusColor('error');
@@ -263,10 +271,14 @@ class DynamicIsland {
         // Monitor window errors - only show critical ones
         window.addEventListener('error', (event) => {
             if (event.error) {
-                const errorMsg = event.error.message || 'Error occurred';
+                const errorMsg = event.error.message || event.error.toString() || 'Error occurred';
                 const isIgnored = ignoredPatterns.some(pattern => errorMsg.includes(pattern));
                 
-                if (!isIgnored) {
+                // Also check the error source/filename for API endpoints
+                const errorSource = event.filename || event.target?.src || '';
+                const isApiError = errorSource.includes('/api/') && (errorMsg.includes('404') || errorMsg.includes('Failed'));
+                
+                if (!isIgnored && !isApiError) {
                     self.setStatusColor('error');
                     const statusEl = document.getElementById('island-status');
                     const shortMsg = errorMsg.length > 30 ? errorMsg.substring(0, 27) + '...' : errorMsg;
@@ -292,10 +304,14 @@ class DynamicIsland {
         
         // Monitor unhandled promise rejections - only show critical ones
         window.addEventListener('unhandledrejection', (event) => {
-            const errorMsg = event.reason?.message || event.reason || 'Promise rejected';
+            const errorMsg = String(event.reason?.message || event.reason || 'Promise rejected');
             const isIgnored = ignoredPatterns.some(pattern => errorMsg.includes(pattern));
             
-            if (!isIgnored) {
+            // Check if it's a fetch error to API endpoints (expected 404s)
+            const isApiFetchError = errorMsg.includes('Failed to fetch') && 
+                                   (errorMsg.includes('/api/') || errorMsg.includes('404'));
+            
+            if (!isIgnored && !isApiFetchError) {
                 self.setStatusColor('error');
                 const statusEl = document.getElementById('island-status');
                 if (statusEl) {
