@@ -579,12 +579,11 @@ class WindowsEmulator {
             // The Windows 10 Lite ISO must be 32-bit (x86) version, not 64-bit (x64)
             // Try Vercel serverless function first, fallback to GitHub release directly
             const windows10LiteUrl = '/api/windows-iso-proxy';
-            // NOTE: If this ISO is 64-bit (x64), it will NOT work with v86.js
-            // You need a 32-bit (x86) Windows 10 image instead
-            const githubReleaseUrl = 'https://github.com/xazalea/windo/releases/download/v1.1/Windows.10.Lite.Edition.19H2.x64.iso';
+            // 32-bit Windows 10 ISO (confirmed compatible with v86.js)
+            const githubReleaseUrl = 'https://github.com/xazalea/windo/releases/download/v1.1/WINDOWS10.ISO';
             
             this.updateProgress(20);
-            this.updateStatus('loading', 'Loading Windows 10 Lite (1.1GB)...');
+            this.updateStatus('loading', 'Loading Windows 10 (32-bit)...');
             if (this.dynamicIsland) {
                 this.dynamicIsland.updateStatus('Loading Windows image...', 0);
             }
@@ -669,9 +668,9 @@ class WindowsEmulator {
                 console.log('Setting CDROM URL to:', finalUrl);
                 this.config.cdrom = {
                     url: finalUrl,
-                    async: true,
-                    // Size helps v86.js optimize loading (1.1GB = 1153433600 bytes)
-                    size: 1153433600
+                    async: true
+                    // Don't specify size - let v86.js auto-detect from HTTP headers
+                    // Specifying incorrect size can cause I/O errors
                 };
                 this.config.boot_order = 0x213; // CD, C, A (boot from CD first)
                 
@@ -769,10 +768,14 @@ class WindowsEmulator {
                     }
                     // Ensure async is true for Range request support
                     this.config.cdrom.async = true;
+                    // Remove size if set - let v86.js auto-detect to avoid I/O errors
+                    if (this.config.cdrom.size) {
+                        delete this.config.cdrom.size;
+                        console.log('Removed CDROM size to allow auto-detection (prevents I/O errors)');
+                    }
                     console.log('Final CDROM config:', {
                         url: this.config.cdrom.url,
-                        async: this.config.cdrom.async,
-                        size: this.config.cdrom.size
+                        async: this.config.cdrom.async
                     });
                 }
                 
@@ -1057,6 +1060,23 @@ class WindowsEmulator {
                             'ERROR: 64-bit Windows detected. v86.js only supports 32-bit (x86) Windows. ' +
                             'Please use a 32-bit Windows 10 image instead.',
                             20000,
+                            'error'
+                        );
+                    }
+                    serialBuffer = ''; // Clear buffer to avoid repeated messages
+                }
+                
+                // Check for I/O error messages
+                if (serialBuffer.includes('I/O error') || 
+                    serialBuffer.includes('unexpected I/O') ||
+                    serialBuffer.includes('device connected to your pc') ||
+                    serialBuffer.includes('I/O error has occurred') ||
+                    serialBuffer.includes('unexpected I/O error')) {
+                    console.error('I/O error detected in serial output');
+                    if (this.dynamicIsland) {
+                        this.dynamicIsland.updateStatus(
+                            'I/O Error: CD-ROM access issue detected. This may be due to incorrect ISO size or network issues.',
+                            15000,
                             'error'
                         );
                     }

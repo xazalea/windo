@@ -18,8 +18,8 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
     
     try {
-        // Windows 10 Lite ISO URL
-        const isoUrl = 'https://github.com/xazalea/windo/releases/download/v1.1/Windows.10.Lite.Edition.19H2.x64.iso';
+        // Windows 10 Lite ISO URL (32-bit)
+        const isoUrl = 'https://github.com/xazalea/windo/releases/download/v1.1/WINDOWS10.ISO';
         
         // Support Range requests for streaming (v86.js uses Range requests for large files)
         const range = req.headers.range;
@@ -37,8 +37,11 @@ export default async function handler(req, res) {
         
         if (!response.ok && response.status !== 206) {
             console.error('Failed to fetch ISO:', response.status, response.statusText);
+            const errorBody = await response.text().catch(() => '');
+            console.error('Error response body:', errorBody.substring(0, 200));
             return res.status(response.status).json({ 
-                error: `Failed to fetch: ${response.status} ${response.statusText}` 
+                error: `Failed to fetch: ${response.status} ${response.statusText}`,
+                details: errorBody.substring(0, 200)
             });
         }
         
@@ -46,10 +49,13 @@ export default async function handler(req, res) {
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
         res.setHeader('Content-Type', contentType);
         
-        // Forward content length if available
+        // Forward content length if available (critical for v86.js to avoid I/O errors)
         const contentLength = response.headers.get('content-length');
         if (contentLength) {
             res.setHeader('Content-Length', contentLength);
+            console.log('Content-Length:', contentLength, 'bytes');
+        } else {
+            console.warn('WARNING: No Content-Length header from source - this may cause I/O errors');
         }
         
         // Handle partial content (Range requests) - v86.js uses these for large files
@@ -68,31 +74,45 @@ export default async function handler(req, res) {
         res.setHeader('Accept-Ranges', 'bytes');
         
         // For Range requests, v86.js only requests small chunks (typically 64KB-1MB)
-        // So we can safely stream these without hitting Vercel's 50MB limit
+        // Stream the response instead of buffering to avoid memory issues and I/O errors
         const reader = response.body.getReader();
         const chunks = [];
         let done = false;
         let totalSize = 0;
+        const maxBufferSize = 10 * 1024 * 1024; // 10MB max buffer (for Range requests)
         
-        while (!done) {
-            const { value, done: readerDone } = await reader.read();
-            done = readerDone;
-            if (value) {
-                chunks.push(Buffer.from(value));
-                totalSize += value.length;
+        try {
+            while (!done) {
+                const { value, done: readerDone } = await reader.read();
+                done = readerDone;
+                if (value) {
+                    chunks.push(Buffer.from(value));
+                    totalSize += value.length;
+                    
+                    // For Range requests, limit buffer size to prevent memory issues
+                    if (range && totalSize > maxBufferSize) {
+                        console.warn('Range request buffer size exceeded limit, truncating');
+                        break;
+                    }
+                }
             }
+            
+            const buffer = Buffer.concat(chunks);
+            
+            // Log for debugging
+            if (range) {
+                console.log(`Range request completed: ${range}, size: ${buffer.length} bytes`);
+            } else {
+                console.log(`Full request completed, size: ${buffer.length} bytes`);
+            }
+            
+            return res.send(buffer);
+        } catch (streamError) {
+            console.error('Stream error:', streamError);
+            return res.status(500).json({ 
+                error: 'Stream error: ' + streamError.message 
+            });
         }
-        
-        const buffer = Buffer.concat(chunks);
-        
-        // Log for debugging
-        if (range) {
-            console.log(`Range request completed: ${range}, size: ${buffer.length} bytes`);
-        } else {
-            console.log(`Full request completed, size: ${buffer.length} bytes`);
-        }
-        
-        return res.send(buffer);
         
     } catch (error) {
         console.error('Proxy error:', error);
