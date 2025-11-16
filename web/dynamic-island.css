@@ -57,6 +57,10 @@
     right: auto !important;
 }
 
+.dynamic-island.status-error .island-status {
+    color: #ef4444;
+}
+
 .dynamic-island.status-warning {
     border-color: #fbbf24;
     background: #2e2a1a;
@@ -88,22 +92,9 @@
     }
 }
 
-/* Error Animation - Subtle pulse */
+/* Error Animation - Removed (no flashing, just red text) */
 .dynamic-island.anim-error {
-    animation: error-pulse 1.5s ease-in-out infinite;
-    /* Ensure transform is maintained during error animation */
-    transform: translateX(-50%) !important;
-}
-
-@keyframes error-pulse {
-    0%, 100% {
-        border-color: #ef4444;
-        opacity: 1;
-    }
-    50% {
-        border-color: #dc2626;
-        opacity: 0.9;
-    }
+    /* Animation removed - errors just show red color */
 }
 
 /* Success Animation - Subtle flash */

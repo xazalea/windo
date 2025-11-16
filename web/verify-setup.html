@@ -71,7 +71,7 @@
         
         // Check 3: Windows image URL
         function checkImageURL() {
-            const url = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
+            const url = 'https://github.com/xazalea/windo/releases/download/v1.0/Windows.10.Lite.Edition.19H2.x64.iso';
             return fetch(url, { method: 'HEAD', mode: 'no-cors' })
                 .then(() => true)
                 .catch(() => true); // CORS may block, but URL exists
@@ -96,7 +96,7 @@
             const results = [
                 { name: 'v86.js Library', check: await checkV86(), details: 'JavaScript x86 emulator' },
                 { name: 'Browser Compatibility', check: checkBrowser(), details: 'WebAssembly, Canvas, LocalStorage' },
-                { name: 'Windows Image URL', check: await checkImageURL(), details: 'Archive.org Windows 10 Lite ISO' },
+                { name: 'Windows Image URL', check: await checkImageURL(), details: 'GitHub Release Windows 10 Lite ISO' },
                 { name: 'Performance APIs', check: checkPerformance(), details: 'requestAnimationFrame, performance API' },
                 { name: 'File System APIs', check: checkFileSystem(), details: 'FileReader, Blob support' },
             ];

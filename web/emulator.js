@@ -560,9 +560,9 @@ class WindowsEmulator {
             }
 
             // Fallback: Load Windows 10 Lite Edition via proxy (avoids CORS)
-            // Try Vercel serverless function first, fallback to archive.org directly
+            // Try Vercel serverless function first, fallback to GitHub release directly
             const windows10LiteUrl = '/api/windows-iso-proxy';
-            const archiveOrgUrl = 'https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso';
+            const githubReleaseUrl = 'https://github.com/xazalea/windo/releases/download/v1.0/Windows.10.Lite.Edition.19H2.x64.iso';
             
             this.updateProgress(20);
             this.updateStatus('loading', 'Loading Windows 10 Lite (1.1GB)...');
@@ -589,10 +589,10 @@ class WindowsEmulator {
                 if (this.dynamicIsland) {
                     this.dynamicIsland.updateStatus('Proxy unavailable, using direct download...', 3000, 'warning');
                 }
-                // Fallback to archive.org directly (may have CORS issues, but worth trying)
+                // Fallback to GitHub release directly (may have CORS issues, but worth trying)
                 try {
-                    console.log('Attempting direct download from archive.org');
-                    await this.loadImage(archiveOrgUrl, 'cdrom');
+                    console.log('Attempting direct download from GitHub release');
+                    await this.loadImage(githubReleaseUrl, 'cdrom');
                 } catch (directError) {
                     console.error('Both proxy and direct URL failed:', directError);
                     const errorMsg = 'Unable to load Windows image. The proxy server may not be deployed yet. Please try again in a few minutes or select a different image.';

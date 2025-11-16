@@ -1217,7 +1217,7 @@ class DynamicIsland {
                 this.container.classList.add('status-success', 'anim-success');
                 break;
             case 'error':
-                this.container.classList.add('status-error', 'anim-error');
+                this.container.classList.add('status-error');
                 break;
             case 'warning':
                 this.container.classList.add('status-warning');
