@@ -50,16 +50,23 @@ class WindowsEmulator {
             this.storageManager = new StorageManager();
         }
         
-        // Initialize filesystem bridge for seamless file sync
+        // Initialize filesystem bridge for seamless file sync (after storage manager is ready)
         this.filesystemBridge = null;
         if (typeof FilesystemBridge !== 'undefined' && this.storageManager) {
-            this.filesystemBridge = new FilesystemBridge(this, this.storageManager);
-            // Create virtual drive automatically
-            setTimeout(() => {
-                this.filesystemBridge.createVirtualDrive().catch(err => {
-                    console.warn('Could not create virtual drive:', err);
-                });
-            }, 2000);
+            // Wait for storage manager to initialize before creating filesystem bridge
+            this.storageManager.init().then(() => {
+                this.filesystemBridge = new FilesystemBridge(this, this.storageManager);
+                // Create virtual drive automatically
+                setTimeout(() => {
+                    if (this.filesystemBridge) {
+                        this.filesystemBridge.createVirtualDrive().catch(err => {
+                            console.warn('Could not create virtual drive:', err);
+                        });
+                    }
+                }, 2000);
+            }).catch(err => {
+                console.warn('Storage manager init failed, continuing without filesystem bridge:', err);
+            });
         }
         
         // Initialize Headscale client for network connectivity
@@ -811,6 +818,8 @@ class WindowsEmulator {
                 v86Config.screen_container = this.container;
                 
                 console.log('Creating V86 with config, CDROM URL:', v86Config.cdrom?.url);
+                console.log('CDROM config:', JSON.stringify(v86Config.cdrom, null, 2));
+                console.log('Boot order:', '0x' + v86Config.boot_order.toString(16));
                 console.log('Screen container validated:', v86Config.screen_container.tagName, v86Config.screen_container.id);
                 
                 if (typeof V86 !== 'undefined') {
@@ -822,6 +831,22 @@ class WindowsEmulator {
                 }
                 
                 console.log('v86 emulator initialized successfully with URL:', this.config.cdrom?.url || this.config.hda?.url);
+                
+                // Verify CD-ROM is accessible after initialization
+                setTimeout(() => {
+                    if (this.emulator && this.emulator.v86 && this.emulator.v86.cpu && 
+                        this.emulator.v86.cpu.devices && this.emulator.v86.cpu.devices.cdrom) {
+                        const cdrom = this.emulator.v86.cpu.devices.cdrom;
+                        const hasDisk = cdrom.has_disk();
+                        console.log('CD-ROM status after init:', { hasDisk, url: v86Config.cdrom?.url });
+                        if (!hasDisk && v86Config.cdrom?.url) {
+                            console.warn('CD-ROM disk not detected! This may prevent Windows from booting.');
+                            if (this.dynamicIsland) {
+                                this.dynamicIsland.updateStatus('CD-ROM not detected - retrying...', 5000, 'warning');
+                            }
+                        }
+                    }
+                }, 3000);
                 
                 // ULTRA-AGGRESSIVE PERFORMANCE OPTIMIZATIONS AFTER INIT
                 // Set minimal screen resolution for FASTEST boot (adaptive system will increase when needed)
@@ -925,32 +950,44 @@ class WindowsEmulator {
                 }
             });
             
-            // Monitor for boot failures - check if screen is stuck
+            // Monitor for boot failures - check if screen is stuck (increased timeout for CD-ROM boot)
             setTimeout(() => {
                 if (!this.bootComplete && this.emulator) {
-                    // Check if screen is still black/empty after 15 seconds
-                    const canvas = document.getElementById('screen');
+                    // Check if screen is still black/empty after 45 seconds (CD-ROM boot takes longer)
+                    const canvas = this.container.querySelector('canvas');
                     if (canvas) {
-                        const ctx = canvas.getContext('2d');
-                        const imageData = ctx.getImageData(0, 0, Math.min(100, canvas.width), Math.min(100, canvas.height));
-                        const pixels = imageData.data;
-                        let allBlack = true;
-                        for (let i = 0; i < pixels.length; i += 4) {
-                            if (pixels[i] !== 0 || pixels[i + 1] !== 0 || pixels[i + 2] !== 0) {
-                                allBlack = false;
-                                break;
+                        try {
+                            const ctx = canvas.getContext('2d');
+                            const imageData = ctx.getImageData(0, 0, Math.min(100, canvas.width), Math.min(100, canvas.height));
+                            const pixels = imageData.data;
+                            let allBlack = true;
+                            for (let i = 0; i < pixels.length; i += 4) {
+                                if (pixels[i] !== 0 || pixels[i + 1] !== 0 || pixels[i + 2] !== 0) {
+                                    allBlack = false;
+                                    break;
+                                }
                             }
-                        }
-                        
-                        if (allBlack && !this.bootComplete) {
-                            console.warn('Screen appears to be stuck on black screen - possible boot failure');
-                            if (this.dynamicIsland) {
-                                this.dynamicIsland.updateStatus('Boot may have failed - checking...', 5000, 'warning');
+                            if (allBlack && !this.bootComplete) {
+                                console.warn('Screen appears to be stuck on black screen after 45s - checking CD-ROM...');
+                                // Check if CD-ROM is loaded
+                                if (this.emulator.v86 && this.emulator.v86.cpu && this.emulator.v86.cpu.devices && 
+                                    this.emulator.v86.cpu.devices.cdrom) {
+                                    const hasDisk = this.emulator.v86.cpu.devices.cdrom.has_disk();
+                                    console.log('CD-ROM has disk:', hasDisk);
+                                    if (!hasDisk) {
+                                        console.error('CD-ROM disk not loaded! This may be why Windows is not booting.');
+                                        if (this.dynamicIsland) {
+                                            this.dynamicIsland.updateStatus('CD-ROM not loaded - checking ISO...', 10000, 'error');
+                                        }
+                                    }
+                                }
                             }
+                        } catch (e) {
+                            console.warn('Could not check screen state:', e);
                         }
                     }
                 }
-            }, 15000);
+            }, 45000); // Increased from 15s to 45s for CD-ROM boot
 
             // Listen for download progress
             this.emulator.add_listener("download-progress", (progress) => {

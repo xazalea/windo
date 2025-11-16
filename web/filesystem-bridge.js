@@ -31,6 +31,23 @@ class FilesystemBridge {
 
     async ensureVirtualDrive() {
         try {
+            // Wait for storage index to be initialized
+            if (!this.storageManager.storageIndex) {
+                await this.storageManager.loadStorageIndex();
+            }
+            
+            // Ensure storage index has directories object
+            if (!this.storageManager.storageIndex) {
+                this.storageManager.storageIndex = {
+                    version: 1,
+                    created: new Date().toISOString(),
+                    files: {},
+                    directories: {},
+                    totalSize: 0,
+                    fileCount: 0
+                };
+            }
+            
             // Ensure virtual drive exists in storage index
             if (!this.storageManager.storageIndex.directories || !this.storageManager.storageIndex.directories[this.virtualDrivePath]) {
                 if (!this.storageManager.storageIndex.directories) {
@@ -46,6 +63,17 @@ class FilesystemBridge {
         } catch (error) {
             console.warn('Error ensuring virtual drive:', error);
             // Continue anyway - localStorage will be used
+            // Initialize a minimal storage index if it doesn't exist
+            if (!this.storageManager.storageIndex) {
+                this.storageManager.storageIndex = {
+                    version: 1,
+                    created: new Date().toISOString(),
+                    files: {},
+                    directories: {},
+                    totalSize: 0,
+                    fileCount: 0
+                };
+            }
         }
     }
 
