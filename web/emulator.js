@@ -20,6 +20,7 @@ class WindowsEmulator {
         this.fps = 0;
         this.performanceMode = 'balanced'; // 'performance', 'balanced', 'quality'
         this.performanceOptimizer = new PerformanceOptimizer();
+        this.adaptivePerformance = null; // Will be initialized after emulator is ready
         this.bootComplete = false;
         
         // Dynamic Island (replaces toolbar)
@@ -94,8 +95,9 @@ class WindowsEmulator {
         }
         
         this.config = {
-            memory_size: 1536 * 1024 * 1024, // 1.5GB RAM (optimal for Windows 10)
-            vga_memory_size: 32 * 1024 * 1024, // 32MB VGA memory (better graphics)
+            // ULTRA-AGGRESSIVE PERFORMANCE OPTIMIZATIONS FOR FASTEST BOOT & BATTERY SAVING
+            memory_size: 768 * 1024 * 1024, // 768MB RAM (minimal for fastest boot, adaptive system will increase when needed)
+            vga_memory_size: 8 * 1024 * 1024, // 8MB VGA (minimal for boot, increases for gaming/video)
             screen_container: this.container,
             wasm_path: "https://unpkg.com/v86@latest/build/v86.wasm",
             bios: {
@@ -110,27 +112,40 @@ class WindowsEmulator {
             hda: null, // Will be set when loading image
             fda: null, // Not used
             boot_order: 0x213, // CD, C, A (boot from CD first for ISO)
-            network_relay_url: "wss://relay.widgetry.org/",
+            network_relay_url: null, // DISABLED for faster boot (adaptive system enables when needed)
             autostart: true,
             disable_keyboard: false,
             disable_mouse: false,
-            disable_speaker: false,
+            disable_speaker: true, // DISABLED for boot (adaptive system enables for video/gaming)
             // Enhanced settings for Windows 10 performance
-            acpi: true,
+            // IMPORTANT: v86.js is 32-bit only - 64-bit Windows will NOT work
+            // For Windows NT 4.0, use: acpi: false, cpuid_level: 2
+            // For Windows Vista+, use: acpi: true (current setting)
+            acpi: true, // Keep ACPI enabled for Windows 10 (Vista+)
             apic: true,
             multiboot: false,
-            // Performance optimizations - speed up boot
+            // ULTRA-AGGRESSIVE Performance optimizations - MAXIMUM SPEED & BATTERY SAVING
             fastboot: true,
-            disable_jit: false, // Enable JIT for faster execution
-            // Better CPU emulation
+            disable_jit: false, // Enable JIT for MUCH faster execution
+            // Optimized CPU emulation
             cpu_count: 1,
+            // CPUID level for Windows compatibility
+            // Note: v86.js emulates 32-bit x86 only - 64-bit Windows requires x86-64 which is NOT supported
+            // You MUST use a 32-bit (x86) Windows image, not 64-bit (x64)
+            // This setting helps with Windows compatibility but does NOT enable 64-bit support
+            cpuid_level: 2, // Required for Windows NT/10 compatibility (helps but won't fix 64-bit issue)
             // Optimize for Windows
             uart_override: "0x3F8",
-            // Better disk I/O
-            disk_image_size: 8589934592,
+            // Minimal disk I/O for fastest boot
+            disk_image_size: 2147483648, // 2GB (minimal for fastest init, adaptive system expands when needed)
             // Performance tweaks
             initial_state: null, // Don't load saved state (faster initial boot)
-            filesystem: {} // Empty filesystem for faster boot
+            filesystem: {}, // Empty filesystem for faster boot
+            // Screen optimizations for FASTEST rendering & battery saving
+            screen: {
+                use_graphical_text: false, // Disable for faster rendering
+                scale: 1, // No scaling for speed
+            }
         };
         
         this.setupEventListeners();
@@ -560,9 +575,13 @@ class WindowsEmulator {
             }
 
             // Fallback: Load Windows 10 Lite Edition via proxy (avoids CORS)
+            // IMPORTANT: v86.js only supports 32-bit (x86) Windows, NOT 64-bit (x64)
+            // The Windows 10 Lite ISO must be 32-bit (x86) version, not 64-bit (x64)
             // Try Vercel serverless function first, fallback to GitHub release directly
             const windows10LiteUrl = '/api/windows-iso-proxy';
-            const githubReleaseUrl = 'https://github.com/xazalea/windo/releases/download/v1.0/Windows.10.Lite.Edition.19H2.x64.iso';
+            // NOTE: If this ISO is 64-bit (x64), it will NOT work with v86.js
+            // You need a 32-bit (x86) Windows 10 image instead
+            const githubReleaseUrl = 'https://github.com/xazalea/windo/releases/download/v1.1/Windows.10.Lite.Edition.19H2.x64.iso';
             
             this.updateProgress(20);
             this.updateStatus('loading', 'Loading Windows 10 Lite (1.1GB)...');
@@ -604,7 +623,11 @@ class WindowsEmulator {
             }
         } catch (error) {
             console.error('Error loading Windows 10 Lite:', error);
-            this.showError('Unable to load Windows 10 Lite. You can try selecting a different image.');
+            const errorMsg = 'Unable to load Windows 10 Lite. ' +
+                'IMPORTANT: v86.js only supports 32-bit (x86) Windows images, NOT 64-bit (x64). ' +
+                'If you see "64-bit application" errors, the ISO is 64-bit and won\'t work. ' +
+                'You need a 32-bit (x86) Windows 10 image instead.';
+            this.showError(errorMsg);
             this.showImageSelector();
         }
     }
@@ -659,9 +682,9 @@ class WindowsEmulator {
                 console.log('CDROM config verified:', this.config.cdrom);
             }
 
-            // Optimized configuration for Windows 10 performance
-            this.config.memory_size = 1536 * 1024 * 1024; // 1.5GB RAM (optimal for apps)
-            this.config.vga_memory_size = 32 * 1024 * 1024; // 32MB VGA (better graphics)
+            // Ultra-optimized configuration for fastest boot (adaptive system will increase when needed)
+            this.config.memory_size = 768 * 1024 * 1024; // 768MB RAM (minimal for fastest boot)
+            this.config.vga_memory_size = 8 * 1024 * 1024; // 8MB VGA (minimal for fastest graphics)
             
             // Ensure screen_container is a DOM element, not a string or null
             if (!this.container || typeof this.container !== 'object' || !this.container.nodeType) {
@@ -796,6 +819,44 @@ class WindowsEmulator {
                 }
                 
                 console.log('v86 emulator initialized successfully with URL:', this.config.cdrom?.url || this.config.hda?.url);
+                
+                // ULTRA-AGGRESSIVE PERFORMANCE OPTIMIZATIONS AFTER INIT
+                // Set minimal screen resolution for FASTEST boot (adaptive system will increase when needed)
+                setTimeout(() => {
+                    try {
+                        if (this.emulator && this.emulator.screen_set_size) {
+                            // Use minimal resolution: 640x480 for fastest boot
+                            this.emulator.screen_set_size(640, 480);
+                            console.log('Boot mode: Screen set to 640x480 for fastest boot');
+                        } else if (this.emulator && this.emulator.screen && this.emulator.screen.set_size) {
+                            this.emulator.screen.set_size(640, 480);
+                            console.log('Boot mode: Screen set to 640x480 for fastest boot');
+                        } else if (this.emulator && this.emulator.v86 && this.emulator.v86.screen && this.emulator.v86.screen.set_size) {
+                            this.emulator.v86.screen.set_size(640, 480);
+                            console.log('Boot mode: Screen set to 640x480 for fastest boot');
+                        }
+                    } catch (e) {
+                        console.warn('Could not set screen size (non-critical):', e);
+                    }
+                }, 1000);
+
+                // Optimize canvas for hardware acceleration
+                setTimeout(() => {
+                    try {
+                        const canvas = this.container.querySelector('canvas');
+                        if (canvas) {
+                            // Enable GPU acceleration
+                            canvas.style.transform = 'translateZ(0)';
+                            canvas.style.willChange = 'contents';
+                            canvas.style.backfaceVisibility = 'hidden';
+                            canvas.style.imageRendering = 'pixelated'; // Faster rendering
+                            console.log('Canvas optimized for hardware acceleration');
+                        }
+                    } catch (e) {
+                        console.warn('Could not optimize canvas (non-critical):', e);
+                    }
+                }, 500);
+                
             } catch (initError) {
                 console.error('v86 initialization error:', initError);
                 const errorMsg = 'Failed to initialize v86 emulator: ' + initError.message;
@@ -810,6 +871,26 @@ class WindowsEmulator {
                 console.log('Emulator ready, Windows should start booting...');
                 this.updateProgress(60, 'Emulator initialized, starting Windows boot...');
                 this.updateStatus('loading', 'Emulator ready, booting Windows...', 'loading');
+                
+                // Initialize Adaptive Performance System
+                if (typeof AdaptivePerformance !== 'undefined') {
+                    this.adaptivePerformance = new AdaptivePerformance(this.emulator);
+                    console.log('Adaptive Performance System activated');
+                }
+                
+                // Apply initial boot optimizations (adaptive system will take over)
+                setTimeout(() => {
+                    try {
+                        // Set minimal screen resolution for boot (adaptive system will increase)
+                        if (this.emulator && this.emulator.v86 && this.emulator.v86.screen && this.emulator.v86.screen.set_size) {
+                            this.emulator.v86.screen.set_size(640, 480);
+                            console.log('Boot mode: Screen set to 640x480 for fastest boot');
+                        }
+                    } catch (e) {
+                        console.warn('Could not set boot screen size (non-critical):', e);
+                    }
+                }, 1000);
+                
                 if (this.dynamicIsland) {
                     this.dynamicIsland.updateStatus('Starting Windows boot process...', 0, 'loading');
                 }
@@ -823,7 +904,20 @@ class WindowsEmulator {
             this.emulator.add_listener("emulator-error", (error) => {
                 console.error('Emulator error:', error);
                 if (this.dynamicIsland) {
-                    const errorMsg = error.message || error.toString();
+                    let errorMsg = error.message || error.toString();
+                    
+                    // Check for 64-bit error and provide helpful message
+                    if (errorMsg.includes('64-bit') || errorMsg.includes('64 bit') || 
+                        errorMsg.includes('x64') || errorMsg.includes('x86-64')) {
+                        errorMsg = '64-bit Windows detected - v86.js only supports 32-bit (x86). ' +
+                                  'You need a 32-bit Windows 10 image instead of 64-bit.';
+                        if (this.dynamicIsland) {
+                            this.dynamicIsland.updateStatus('64-bit Windows not supported - need 32-bit image', 15000, 'error');
+                        }
+                        console.error('CRITICAL: v86.js is 32-bit only. The Windows image must be 32-bit (x86), not 64-bit (x64).');
+                        return;
+                    }
+                    
                     this.dynamicIsland.updateStatus(`Boot error: ${errorMsg.substring(0, 30)}`, 10000, 'error');
                 }
             });
@@ -909,7 +1003,7 @@ class WindowsEmulator {
                 this.hideLoading();
             }, 1000);
             
-            // Mark boot as complete after a delay
+            // Mark boot as complete after a delay and switch adaptive system to idle mode
             setTimeout(() => {
                 this.bootComplete = true;
                 this.updateProgress(100, 'Windows boot complete');
@@ -918,7 +1012,12 @@ class WindowsEmulator {
                     this.dynamicIsland.updateProgress(100);
                     this.dynamicIsland.setWindowsReady(true);
                 }
-            }, 60000); // Assume boot complete after 60 seconds
+                // Switch adaptive system from boot to idle mode
+                if (this.adaptivePerformance) {
+                    this.adaptivePerformance.setMode('idle');
+                    console.log('Switched to idle mode after boot');
+                }
+            }, 30000); // Reduced to 30 seconds (adaptive system will optimize)
             
             // Listen for boot completion
             this.emulator.add_listener("boot", () => {
@@ -934,9 +1033,37 @@ class WindowsEmulator {
                 // Screen is automatically updated by v86.js to canvas
             });
 
+            // Monitor serial output for 64-bit errors
+            let serialBuffer = '';
             this.emulator.add_listener("serial0-output-char", (char) => {
                 // Serial output (boot messages)
-                if (char === '\n') {
+                const charCode = typeof char === 'number' ? char : char.charCodeAt(0);
+                serialBuffer += String.fromCharCode(charCode);
+                
+                // Keep buffer to last 500 chars
+                if (serialBuffer.length > 500) {
+                    serialBuffer = serialBuffer.slice(-500);
+                }
+                
+                // Check for 64-bit error messages
+                if (serialBuffer.includes('64-bit') || 
+                    serialBuffer.includes('64 bit') ||
+                    serialBuffer.includes('needs to be repaired') ||
+                    serialBuffer.includes('doesn\'t have a 64-bit processor') ||
+                    serialBuffer.includes('doesn\'t have a 64 bit processor')) {
+                    console.error('64-bit Windows error detected in serial output');
+                    if (this.dynamicIsland) {
+                        this.dynamicIsland.updateStatus(
+                            'ERROR: 64-bit Windows detected. v86.js only supports 32-bit (x86) Windows. ' +
+                            'Please use a 32-bit Windows 10 image instead.',
+                            20000,
+                            'error'
+                        );
+                    }
+                    serialBuffer = ''; // Clear buffer to avoid repeated messages
+                }
+                
+                if (charCode === 10 || charCode === 13) { // \n or \r
                     this.updateStatus('loading', 'Windows is booting...');
                 }
             });
@@ -979,8 +1106,13 @@ class WindowsEmulator {
                 localStorage.setItem('windowsImageUrl', imageUrl);
                 localStorage.setItem('windowsImageType', imageType);
                 
+                // Switch to idle mode when Windows is ready
+                if (this.adaptivePerformance) {
+                    this.adaptivePerformance.setMode('idle');
+                }
+                
                 showToast('Windows 10 Lite is ready! Open apps, browsers, and more.', 'success');
-            }, 60000); // Give Windows 60 seconds to boot
+            }, 30000); // Reduced to 30 seconds (adaptive system optimizes boot)
 
         } catch (error) {
             console.error('Error initializing emulator:', error);
@@ -988,6 +1120,23 @@ class WindowsEmulator {
         }
     }
 
+    // Detect app from screen content or other signals
+    detectApp(appName) {
+        if (this.adaptivePerformance) {
+            this.adaptivePerformance.detectApp(appName);
+            console.log(`App detected: ${appName}, adaptive system adjusting...`);
+        }
+    }
+    
+    // Monitor screen for app launches (called periodically)
+    monitorAppLaunches() {
+        if (!this.bootComplete || !this.adaptivePerformance) return;
+        
+        // This would ideally hook into Windows process monitoring
+        // For now, we rely on user interaction and adaptive system's workload detection
+        // The adaptive system will automatically detect workload changes
+    }
+    
     loadPresetImage(type) {
         const images = {
             windows11: {

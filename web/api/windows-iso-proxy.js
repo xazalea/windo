@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     
     try {
         // Windows 10 Lite ISO URL
-        const isoUrl = 'https://github.com/xazalea/windo/releases/download/v1.0/Windows.10.Lite.Edition.19H2.x64.iso';
+        const isoUrl = 'https://github.com/xazalea/windo/releases/download/v1.1/Windows.10.Lite.Edition.19H2.x64.iso';
         
         // Support Range requests for streaming (v86.js uses Range requests for large files)
         const range = req.headers.range;
