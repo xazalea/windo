@@ -587,7 +587,7 @@ class WindowsEmulator {
             // Try Vercel serverless function first, fallback to GitHub release directly
             const windows10LiteUrl = '/api/windows-iso-proxy';
             // 32-bit Windows 10 ISO (confirmed compatible with v86.js)
-            const githubReleaseUrl = 'https://github.com/xazalea/windo/releases/download/v1.1/WINDOWS10.ISO';
+            const githubReleaseUrl = 'https://github.com/xazalea/windo/releases/download/v1.1/wind0.iso';
             
             this.updateProgress(20);
             this.updateStatus('loading', 'Loading Windows 10 (32-bit)...');
