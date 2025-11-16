@@ -323,8 +323,9 @@ class DynamicIsland {
             if (!isIgnored && !isApiFetchError) {
                 self.setStatusColor('error');
                 const statusEl = document.getElementById('island-status');
+                const shortMsg = errorMsg.length > 30 ? errorMsg.substring(0, 27) + '...' : errorMsg;
+                
                 if (statusEl) {
-                    const shortMsg = errorMsg.length > 30 ? errorMsg.substring(0, 27) + '...' : errorMsg;
                     statusEl.textContent = shortMsg;
                     self.statusText = shortMsg;
                 }
