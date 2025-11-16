@@ -1,6 +1,9 @@
-# Ignore everything except web directory for Vercel
+# Ignore everything except web directory and api functions for Vercel
 *
 !web/
 web/*
 !web/**
+!api/
+api/*
+!api/**
 
