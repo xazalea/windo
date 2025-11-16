@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>wind0 - Windows 10 Running on Browser</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪟</text></svg>">
-    <link rel="shortcut icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪟</text></svg>">
+    <link rel="icon" type="image/png" href="windows-logo.png">
+    <link rel="shortcut icon" type="image/png" href="windows-logo.png">
     <link rel="stylesheet" href="emulator.css">
     <link rel="stylesheet" href="logo-styles.css">
 </head>
@@ -56,6 +56,7 @@
                 <canvas id="screen"></canvas>
                 <div id="loadingOverlay" class="loading-overlay">
                     <div class="loading-content">
+                        <img src="windows-logo.png" alt="Windows Logo" class="loading-logo" style="width: 120px; height: 120px; margin: 0 auto 2rem; display: block; opacity: 0.95;">
                         <div class="loading-spinner"></div>
                         <h3>Loading Windows 10 Lite...</h3>
                         <p id="loadingText">Initializing x86 emulator</p>
@@ -149,7 +150,7 @@
                 <div class="modal-body">
                     <div class="image-options">
                         <div class="image-option" onclick="loadPresetImage('windows10')">
-                            <div class="image-icon">🪟</div>
+                            <img src="windows-logo.png" alt="Windows Logo" style="width: 48px; height: 48px; margin: 0 auto 1rem; display: block;">
                             <h3>Windows 10 Lite</h3>
                             <p>Windows 10 Lite Edition 19H2</p>
                             <small>1.1GB - Ready to use!</small>
@@ -176,7 +177,7 @@
             <div class="terms-modal-container">
                 <div class="terms-modal-header">
                     <div class="terms-logo-container">
-                        <div class="terms-logo" style="font-size: 48px; line-height: 48px;">🪟</div>
+                        <img src="windows-logo.png" alt="Windows Logo" class="terms-logo" style="width: 48px; height: 48px;">
                         <h1>wind0</h1>
                     </div>
                     <p>Windows running on the browser</p>
