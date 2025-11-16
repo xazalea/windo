@@ -222,7 +222,7 @@ class DynamicIsland {
         const ignoredPatterns = [
             'ERR_CONNECTION_REFUSED', // Expected when backend isn't running
             'CORS policy', // Expected when proxy isn't available
-            'File.IO proxy not available', // Expected fallback
+            'File.IO proxy not available', // Legacy message (replaced by Puter.js)
             'Azalea server not available', // Expected fallback
             'localStorage only', // Expected fallback message
             'Proxy returned 404', // Expected when proxy isn't deployed yet
@@ -231,7 +231,7 @@ class DynamicIsland {
             'failed (status 404)', // v86 library 404 errors
             'status 404', // General 404 errors (expected until functions are deployed)
             '/api/windows-iso-proxy', // Specific proxy endpoint (404 expected until deployed)
-            '/api/fileio-proxy', // Specific proxy endpoint (404 expected until deployed)
+            '/api/fileio-proxy', // Legacy endpoint (no longer used, replaced by Puter.js)
             'Failed to cache image', // Expected when server unavailable
             'Server caching failed', // Expected fallback
             'Health check failed', // Expected when backend not running

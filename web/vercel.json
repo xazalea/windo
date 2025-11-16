@@ -7,9 +7,6 @@
         },
         "api/windows-iso-proxy.js": {
           "maxDuration": 300
-        },
-        "api/fileio-proxy.js": {
-          "maxDuration": 60
         }
       },
   "rewrites": [

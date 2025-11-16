@@ -1,5 +1,5 @@
-// Filesystem Bridge - Seamless File.IO Integration
-// Automatically syncs Windows VM files with File.IO cloud storage
+// Filesystem Bridge - Seamless Puter.js Integration
+// Automatically syncs Windows VM files with Puter.js cloud storage
 class FilesystemBridge {
     constructor(emulator, storageManager) {
         this.emulator = emulator;
@@ -198,7 +198,7 @@ class FilesystemBridge {
                 created: new Date().toISOString()
             };
             
-            // Try to upload to File.IO (optional, may fail)
+            // Try to upload to Puter.js (optional, may fail)
             try {
                 await this.storageManager.storeFile(
                     `${this.virtualDrivePath}/.disk.json`,
@@ -206,7 +206,7 @@ class FilesystemBridge {
                     { mimeType: 'application/json' }
                 );
             } catch (uploadError) {
-                console.warn('Could not upload disk metadata to File.IO, using localStorage:', uploadError);
+                console.warn('Could not upload disk metadata to Puter.js, using localStorage:', uploadError);
             }
             
             // Create some default directories
@@ -284,7 +284,7 @@ class FilesystemBridge {
             const file = files.find(f => f.path === filePath || f.path.endsWith(filePath));
             
             if (file && file.link) {
-                // File.IO provides shareable links
+                // Puter.js provides shareable links
                 return {
                     success: true,
                     link: file.link,

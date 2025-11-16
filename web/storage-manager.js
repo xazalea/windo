@@ -1,9 +1,9 @@
-// Storage Manager - Virtual Filesystem using File.IO
+// Storage Manager - Virtual Filesystem using Puter.js
 // Provides unlimited cloud storage for Windows VM
 class StorageManager {
     constructor() {
-        this.fileIO = new FileIOClient();
-        this.storageIndex = null; // Index of all files stored in File.IO
+        this.fileIO = new PuterClient();
+        this.storageIndex = null; // Index of all files stored in Puter.js
         this.storageIndexKey = null; // Key of the storage index file
         this.virtualDrive = new Map(); // In-memory virtual drive structure
         this.maxCacheSize = 50 * 1024 * 1024; // 50MB cache
@@ -31,7 +31,7 @@ class StorageManager {
                 const indexData = JSON.parse(cachedIndex);
                 this.storageIndexKey = indexData.indexKey;
                 
-                // Try to download the actual index from File.IO
+                // Try to download the actual index from Puter.js
                 if (this.storageIndexKey) {
                     try {
                         const indexBlob = await this.fileIO.downloadFile(this.storageIndexKey);
@@ -39,7 +39,7 @@ class StorageManager {
                         this.storageIndex = JSON.parse(indexText);
                         return;
                     } catch (err) {
-                        console.warn('Could not load index from File.IO, using cached:', err);
+                        console.warn('Could not load index from Puter.js, using cached:', err);
                     }
                 }
             }
@@ -66,31 +66,27 @@ class StorageManager {
         }
     }
 
-    // Save storage index to File.IO
+    // Save storage index to Puter.js
     async saveStorageIndex() {
         try {
             const indexJson = JSON.stringify(this.storageIndex);
             const indexBlob = new Blob([indexJson], { type: 'application/json' });
             const indexFile = new File([indexBlob], 'storage_index.json', { type: 'application/json' });
             
+            const indexPath = 'wind0_storage_index.json';
+            
             if (this.storageIndexKey) {
-                // Update existing index
-                await this.fileIO.updateFile(this.storageIndexKey, {
-                    autoDelete: false,
-                    maxDownloads: 0 // Unlimited downloads
-                });
-                
-                // Re-upload the updated index
+                // Update existing index (overwrite)
                 const result = await this.fileIO.uploadFile(indexFile, {
-                    autoDelete: false,
-                    maxDownloads: 0
+                    path: indexPath,
+                    dedupeName: false
                 });
                 this.storageIndexKey = result.key;
             } else {
                 // Create new index
                 const result = await this.fileIO.uploadFile(indexFile, {
-                    autoDelete: false,
-                    maxDownloads: 0
+                    path: indexPath,
+                    dedupeName: false
                 });
                 this.storageIndexKey = result.key;
             }
@@ -105,7 +101,7 @@ class StorageManager {
         }
     }
 
-    // Store a file in File.IO (with automatic retry and progress)
+    // Store a file in Puter.js (with automatic retry and progress)
     async storeFile(filePath, fileData, metadata = {}) {
         try {
             const fileName = filePath.split('/').pop() || 'file';
@@ -138,7 +134,7 @@ class StorageManager {
                 ...metadata
             };
             
-            // Try to upload to File.IO (optional, may fail due to CORS)
+            // Try to upload to Puter.js
             let result = null;
             try {
                 if (existingFile && existingFile.key) {
@@ -150,20 +146,20 @@ class StorageManager {
                     }
                 }
                 
-                // Upload to File.IO
+                // Upload to Puter.js
                 result = await this.fileIO.uploadFile(file, {
-                    autoDelete: false, // Keep files as long as possible
-                    maxDownloads: 0 // Unlimited downloads
+                    path: relativePath,
+                    dedupeName: false
                 });
                 
-                // Update with File.IO metadata if upload succeeded
+                // Update with Puter.js metadata if upload succeeded
                 if (result.success && result.key) {
                     this.storageIndex.files[relativePath].key = result.key;
                     this.storageIndex.files[relativePath].link = result.link;
                 }
             } catch (uploadError) {
-                // File.IO upload failed (CORS or other issue), but localStorage is saved
-                console.warn('Could not upload file to File.IO, using localStorage only:', uploadError);
+                // Puter.js upload failed, but localStorage is saved
+                console.warn('Could not upload file to Puter.js, using localStorage only:', uploadError);
             }
             
             // Update total size
@@ -198,7 +194,7 @@ class StorageManager {
         }
     }
 
-    // Retrieve a file from File.IO
+    // Retrieve a file from Puter.js
     async retrieveFile(filePath) {
         try {
             const relativePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
@@ -215,7 +211,7 @@ class StorageManager {
                 throw new Error('File not found: ' + filePath);
             }
             
-            // Download from File.IO
+            // Download from Puter.js
             const blob = await this.fileIO.downloadFile(fileInfo.key);
             
             // Cache if small enough
@@ -249,7 +245,7 @@ class StorageManager {
                 throw new Error('File not found: ' + filePath);
             }
             
-            // Delete from File.IO
+            // Delete from Puter.js
             await this.fileIO.deleteFile(fileInfo.key);
             
             // Update index
@@ -306,7 +302,7 @@ class StorageManager {
     // Create a virtual disk image that can be mounted in Windows
     async createVirtualDisk(sizeMB = 1000) {
         try {
-            // Create a sparse disk image (we'll use File.IO to store the actual data)
+            // Create a sparse disk image (we'll use Puter.js to store the actual data)
             const diskId = 'wind0_disk_' + Date.now();
             const diskInfo = {
                 id: diskId,
@@ -336,7 +332,7 @@ class StorageManager {
             const diskText = await diskBlob.text();
             const diskInfo = JSON.parse(diskText);
             
-            // Create a virtual drive that syncs with File.IO
+            // Create a virtual drive that syncs with Puter.js
             // This would integrate with v86.js filesystem
             // For now, we'll create a mapping
             
