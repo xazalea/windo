@@ -1037,11 +1037,28 @@ class WindowsEmulator {
                 }
             });
 
-            // Hide loading overlay when emulator is ready (dynamic island handles status)
-            // Small delay to ensure dynamic island is visible first
+            // Hide loading overlay when Windows actually starts showing content
+            // Wait for screen updates to ensure Windows is booting
+            let screenUpdateCount = 0;
+            const screenUpdateListener = () => {
+                screenUpdateCount++;
+                // Hide overlay after we see actual screen activity (Windows is booting)
+                if (screenUpdateCount > 100 && !this.bootComplete) {
+                    setTimeout(() => {
+                        this.hideLoading();
+                    }, 2000); // Give it 2 seconds to ensure Windows is actually starting
+                    this.emulator.remove_listener("screen-update", screenUpdateListener);
+                }
+            };
+            this.emulator.add_listener("screen-update", screenUpdateListener);
+            
+            // Fallback: Hide overlay after 10 seconds if no screen updates (emulator might be stuck)
             setTimeout(() => {
-                this.hideLoading();
-            }, 1000);
+                if (screenUpdateCount === 0) {
+                    console.warn('No screen updates detected, hiding overlay anyway');
+                    this.hideLoading();
+                }
+            }, 10000);
             
             // Mark boot as complete after a delay and switch adaptive system to idle mode
             setTimeout(() => {
