@@ -1,0 +1,9 @@
+node_modules/
+src/
+example/
+*.md
+!README.md
+rollup.config.js
+package-lock.json
+.gitignore
+

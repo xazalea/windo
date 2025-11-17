@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Emulator Example</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Container will be created automatically, or use your own -->
+    <div id="emulator-container"></div>
+    
+    <!-- Include v86.js -->
+    <script src="https://unpkg.com/v86@latest/build/libv86.js"></script>
+    
+    <!-- Use the easy emulator -->
+    <script type="module">
+        import { init } from '../dist/index.js';
+        
+        // That's it! Just change the ISO_URL to your OS image
+        init({
+            ISO_URL: 'https://github.com/xazalea/windo/releases/download/v1.1/wind0.iso',
+            
+            // Optional: Custom loading screen
+            LOADING_BACKGROUND: 'https://example.com/loading-bg.png',
+            LOADING_LOGO: 'https://example.com/logo.png',
+            
+            // Optional: Callbacks
+            onReady: (emulator) => {
+                console.log('✅ Emulator ready!', emulator);
+            },
+            onBootComplete: (emulator) => {
+                console.log('✅ OS booted successfully!', emulator);
+            },
+            onError: (error) => {
+                console.error('❌ Error:', error);
+            },
+            onProgress: (percent, message) => {
+                console.log(`📊 ${percent}%: ${message}`);
+            }
+        }).catch(error => {
+            console.error('Failed to initialize emulator:', error);
+            document.body.innerHTML = `
+                <div style="color: white; padding: 2rem; font-family: sans-serif;">
+                    <h1>Error</h1>
+                    <p>${error.message}</p>
+                    <p>Make sure v86.js is loaded and the ISO URL is correct.</p>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
+

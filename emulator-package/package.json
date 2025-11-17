@@ -1,0 +1,45 @@
+{
+  "name": "windo",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Super easy browser-based x86 emulator - just provide an ISO and it handles everything",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "emulator",
+    "x86",
+    "v86",
+    "browser",
+    "iso",
+    "windows",
+    "linux",
+    "android"
+  ],
+  "author": "wind0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xazalea/windo.git"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "rollup": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "v86": "*"
+  }
+}
+
